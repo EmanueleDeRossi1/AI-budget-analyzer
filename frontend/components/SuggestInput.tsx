@@ -11,7 +11,9 @@ const SuggestInput = forwardRef<HTMLInputElement, {
   placeholder?: string
   autoFocus?: boolean
   onEnter?: () => void
-}>(({ value, onChange, suggestions, placeholder, autoFocus, onEnter }, forwardedRef) => {
+  onBlur?: () => void
+  inputStyle?: React.CSSProperties
+}>(({ value, onChange, suggestions, placeholder, autoFocus, onEnter, onBlur, inputStyle }, forwardedRef) => {
   const [open, setOpen] = useState(false)
   const [highlighted, setHighlighted] = useState(-1)
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 })
@@ -102,11 +104,12 @@ const SuggestInput = forwardRef<HTMLInputElement, {
           color: 'var(--mantine-color-text)',
           outline: 'none',
           transition: 'border-color 0.1s',
+          ...inputStyle,
         }}
-        onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--mantine-color-gray-5)')}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--mantine-color-gray-4)')}
-        onFocusCapture={e => (e.currentTarget.style.borderColor = 'var(--mantine-color-blue-5)')}
-        onBlurCapture={e => (e.currentTarget.style.borderColor = 'var(--mantine-color-gray-4)')}
+        onMouseEnter={e => { if (!inputStyle) e.currentTarget.style.borderColor = 'var(--mantine-color-gray-5)' }}
+        onMouseLeave={e => { if (!inputStyle) e.currentTarget.style.borderColor = 'var(--mantine-color-gray-4)' }}
+        onFocusCapture={e => { if (!inputStyle) e.currentTarget.style.borderColor = 'var(--mantine-color-blue-5)' }}
+        onBlurCapture={e => { if (!inputStyle) e.currentTarget.style.borderColor = 'var(--mantine-color-gray-4)'; onBlur?.() }}
       />
       {open && hasOptions && createPortal(
         <div style={{
