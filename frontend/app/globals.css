@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Row action buttons: hidden until row is hovered */
+tr:hover .row-actions {
+  opacity: 1 !important;
+}
