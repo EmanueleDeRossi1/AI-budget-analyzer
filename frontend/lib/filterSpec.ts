@@ -39,7 +39,7 @@ export type FilteredRow = {
 function toRow(item: BudgetLineItem): FilteredRow {
   const budget = Number(item.budget_amount)
   const actual = Number(item.actual_amount)
-  const variance = actual - budget
+  const variance = budget - actual
   return {
     key: String(item.id),
     period: item.period || undefined,
@@ -65,7 +65,7 @@ function summarise(
 ): FilteredRow {
   const budget   = rows.reduce((s, r) => s + r.budget, 0)
   const actual   = rows.reduce((s, r) => s + r.actual, 0)
-  const variance = actual - budget
+  const variance = budget - actual
   return {
     key,
     ...dimensionValues,

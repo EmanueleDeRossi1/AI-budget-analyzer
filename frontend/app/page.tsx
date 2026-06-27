@@ -218,8 +218,9 @@ SuggestInput.displayName = 'SuggestInput'
 // ── Variance badge ────────────────────────────────────────────────────────────
 
 function VarianceBadge({ variance }: { variance: number }) {
-  if (variance > 0) return <Badge color="red" variant="light">+{fmt(variance)}</Badge>
-  return <Badge color="green" variant="light">{fmt(variance)}</Badge>
+  if (variance > 0) return <Badge color="green" variant="light">+{fmt(variance)}</Badge>
+  if (variance < 0) return <Badge color="red" variant="light">{fmt(variance)}</Badge>
+  return <Badge color="gray" variant="light">—</Badge>
 }
 
 // ── Scenario combobox ─────────────────────────────────────────────────────────
@@ -318,8 +319,8 @@ function ScenarioCombobox({
 
 function StatsBar({ items }: { items: BudgetLineItem[] }) {
   const { totalBudget, totalActual } = computeStats(items)
-  const delta = totalActual - totalBudget
-  const over = delta > 0
+  const delta = totalBudget - totalActual
+  const favorable = delta >= 0
 
   const chartData = Array.from(new Set(items.map(i => i.department))).map(dept => {
     const deptItems = items.filter(i => i.department === dept)
@@ -343,8 +344,8 @@ function StatsBar({ items }: { items: BudgetLineItem[] }) {
           <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={0.5}>Actual Spend</Text>
           <Text size="xl" fw={700} mt={4}>{fmt(totalActual)}</Text>
           <Group gap={4} mt={2}>
-            {over ? <TrendingUp size={12} color="var(--mantine-color-red-6)" /> : <TrendingDown size={12} color="var(--mantine-color-green-6)" />}
-            <Text size="xs" c={over ? 'red' : 'green'}>{over ? '+' : ''}{fmt(delta)} vs plan</Text>
+            {favorable ? <TrendingDown size={12} color="var(--mantine-color-green-6)" /> : <TrendingUp size={12} color="var(--mantine-color-red-6)" />}
+            <Text size="xs" c={favorable ? 'green' : 'red'}>{favorable ? '+' : ''}{fmt(delta)} vs plan</Text>
           </Group>
         </Paper>
       </SimpleGrid>
@@ -1008,7 +1009,7 @@ export default function Home() {
                                 <VarianceBadge variance={row.variance} />
                               </Table.Td>
                               <Table.Td>
-                                <Text size="xs" c={row.variance_pct > 0 ? 'red' : 'green'}>
+                                <Text size="xs" c={row.variance_pct > 0 ? 'green' : 'red'}>
                                   {row.variance_pct > 0 ? '+' : ''}{row.variance_pct.toFixed(1)}%
                                 </Text>
                               </Table.Td>
@@ -1058,7 +1059,7 @@ export default function Home() {
                                     <Table.Td c="dimmed" style={{ maxWidth: 160 }}>
                                       {row.notes
                                         ? <Text size="xs" truncate>{row.notes}</Text>
-                                        : <Text size="xs" c={row.variance_pct > 0 ? 'red' : 'green'}>
+                                        : <Text size="xs" c={row.variance_pct > 0 ? 'green' : 'red'}>
                                             {row.variance_pct !== 0 ? `${row.variance_pct > 0 ? '+' : ''}${row.variance_pct.toFixed(1)}%` : ''}
                                           </Text>
                                       }
