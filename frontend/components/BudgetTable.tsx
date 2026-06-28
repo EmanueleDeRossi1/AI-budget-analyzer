@@ -4,7 +4,7 @@ import { useMemo, useState, useCallback } from 'react'
 import {
   Group, Text, Badge, ActionIcon, Table, Select,
 } from '@mantine/core'
-import { Trash2, CopyPlus, ChevronRight, ChevronDown } from 'lucide-react'
+import { Trash2, CopyPlus, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react'
 import { BudgetLineItem } from '@/lib/api'
 import { FilterSpec, FilteredRow, GroupByField } from '@/lib/filterSpec'
 import { PeriodType, PERIOD_TYPE_LABELS, periodLabel, periodOptions } from '@/lib/periods'
@@ -31,6 +31,39 @@ function VariancePct({ pct }: { pct: number }) {
     <Text size="xs" c={pct > 0 ? 'green' : 'red'}>
       {pct > 0 ? '+' : ''}{pct.toFixed(1)}%
     </Text>
+  )
+}
+
+// ── Sortable column header ────────────────────────────────────────────────────
+
+function SortableHeader({
+  label, field, activeSort, sortDir, onSort,
+}: {
+  label: string
+  field: FilterSpec['sort_by']
+  activeSort: FilterSpec['sort_by']
+  sortDir: FilterSpec['sort_dir']
+  onSort: (field: FilterSpec['sort_by']) => void
+}) {
+  const isDimension = field === 'period' || field === 'department' || field === 'category'
+  const isActive = isDimension ? activeSort === field : (activeSort ?? 'variance') === field
+  const dir = sortDir ?? 'desc'
+  return (
+    <button
+      onClick={() => onSort(field)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 3,
+        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+        color: isActive ? 'var(--mantine-color-blue-6)' : 'inherit',
+        fontWeight: 600, fontSize: 'inherit', whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+      <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+        <ChevronUp size={10} style={{ opacity: isActive && dir === 'asc' ? 1 : 0.25 }} />
+        <ChevronDown size={10} style={{ opacity: isActive && dir === 'desc' ? 1 : 0.25 }} />
+      </span>
+    </button>
   )
 }
 
@@ -116,6 +149,14 @@ export default function BudgetTable({
   onNewRowCancel?: () => void
 }) {
   const { editCell, activateCell, saveCellEdit, cancelCellEdit, updateValue, setEditCell } = useInlineEdit(refresh)
+
+  function handleSort(field: FilterSpec['sort_by']) {
+    if ((activeSpec.sort_by ?? 'variance') === field) {
+      dispatch('setSort', { sort_by: field, sort_dir: activeSpec.sort_dir === 'asc' ? 'desc' : 'asc' })
+    } else {
+      dispatch('setSort', { sort_by: field, sort_dir: 'desc' })
+    }
+  }
 
   const uniqueDepts = Array.from(new Set(lineItems.map(i => i.department)))
   const uniqueCats = Array.from(new Set(lineItems.map(i => i.category)))
@@ -341,12 +382,24 @@ export default function BudgetTable({
     <Table striped highlightOnHover>
       <Table.Thead>
         <Table.Tr>
-          <Table.Th>{PERIOD_TYPE_LABELS[activePeriodType]}</Table.Th>
-          <Table.Th>Department</Table.Th>
-          <Table.Th>Category</Table.Th>
-          <Table.Th style={{ textAlign: 'right' }}>Budget</Table.Th>
-          <Table.Th style={{ textAlign: 'right' }}>Actual</Table.Th>
-          <Table.Th style={{ textAlign: 'right' }}>Variance</Table.Th>
+          <Table.Th>
+            <SortableHeader label={PERIOD_TYPE_LABELS[activePeriodType]} field="period" activeSort={activeSpec.sort_by} sortDir={activeSpec.sort_dir} onSort={handleSort} />
+          </Table.Th>
+          <Table.Th>
+            <SortableHeader label="Department" field="department" activeSort={activeSpec.sort_by} sortDir={activeSpec.sort_dir} onSort={handleSort} />
+          </Table.Th>
+          <Table.Th>
+            <SortableHeader label="Category" field="category" activeSort={activeSpec.sort_by} sortDir={activeSpec.sort_dir} onSort={handleSort} />
+          </Table.Th>
+          <Table.Th style={{ textAlign: 'right' }}>
+            <SortableHeader label="Budget" field="budget" activeSort={activeSpec.sort_by} sortDir={activeSpec.sort_dir} onSort={handleSort} />
+          </Table.Th>
+          <Table.Th style={{ textAlign: 'right' }}>
+            <SortableHeader label="Actual" field="actual" activeSort={activeSpec.sort_by} sortDir={activeSpec.sort_dir} onSort={handleSort} />
+          </Table.Th>
+          <Table.Th style={{ textAlign: 'right' }}>
+            <SortableHeader label="Variance" field="variance" activeSort={activeSpec.sort_by} sortDir={activeSpec.sort_dir} onSort={handleSort} />
+          </Table.Th>
           {activeColumns.map(col => (
             <Table.Th key={col.id} style={{ textAlign: 'right', color: 'var(--mantine-color-blue-6)' }}>
               {col.label}

@@ -1,7 +1,6 @@
 'use client'
 
-import { Box, Group, Text, Button, MultiSelect, Divider } from '@mantine/core'
-import { X } from 'lucide-react'
+import { Box, Group, Text, MultiSelect, Divider } from '@mantine/core'
 import { FilterSpec, GroupByField, isEmptySpec, toggleGroupBy } from '@/lib/filterSpec'
 import { PeriodType, PERIOD_TYPE_LABELS, periodLabel } from '@/lib/periods'
 import SegmentButton from '@/components/SegmentButton'
@@ -26,20 +25,6 @@ export default function FilterBar({
     { value: 'department', label: 'Dept' },
     { value: 'category',   label: 'Category' },
   ]
-
-  const SORT_OPTS: { value: FilterSpec['sort_by']; label: string }[] = [
-    { value: 'variance', label: 'Variance' },
-    { value: 'budget',   label: 'Budget' },
-    { value: 'actual',   label: 'Actual' },
-  ]
-
-  function setSortBy(s: FilterSpec['sort_by']) {
-    if ((spec.sort_by ?? 'variance') === s) {
-      dispatch('setSort', { sort_by: s, sort_dir: spec.sort_dir === 'asc' ? 'desc' : 'asc' })
-    } else {
-      dispatch('setSort', { sort_by: s, sort_dir: 'desc' })
-    }
-  }
 
   const activePillStyle: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -123,27 +108,13 @@ export default function FilterBar({
           ))}
         </Group>
 
-        <Divider orientation="vertical" h={20} />
-
-        <Group gap={4} wrap="nowrap">
-          <Text size="xs" c="dimmed" fw={500} style={{ whiteSpace: 'nowrap' }}>Sort</Text>
-          {SORT_OPTS.map(o => {
-            const active = (spec.sort_by ?? 'variance') === o.value
-            const dir = spec.sort_dir ?? 'desc'
-            return (
-              <SegmentButton key={o.value!} active={active} onClick={() => setSortBy(o.value)}>
-                {o.label}{active ? (dir === 'desc' ? ' ↓' : ' ↑') : ''}
-              </SegmentButton>
-            )
-          })}
-        </Group>
-
         {!empty && (
           <>
             <Divider orientation="vertical" h={20} />
-            <Button size="xs" variant="subtle" color="gray" leftSection={<X size={11} />} onClick={() => dispatch('resetView')}>
+            <span style={activePillStyle}>
               Clear
-            </Button>
+              <button style={xBtnStyle} onClick={() => dispatch('resetView')}>×</button>
+            </span>
           </>
         )}
       </Group>
