@@ -24,7 +24,8 @@ Open http://localhost:3000. A demo scenario loads automatically.
 
 **Frontend**: Next.js, budget table + chat panel side by side. I used existing libraries rather than building custom: [assistant-ui](https://www.assistant-ui.com/) for the chat (streaming, tool-call rendering, message history, copy/retry actions... all out of the box) and [Mantine](https://mantine.dev) for everything else (clean, data-dense, looks good without much work).
 
-**AI**: OpenAI Agents SDK with `o4-mini`. Handles tool schema generation, streaming events, and the run loop out of the box — raw `openai` calls would have required wiring all of that manually.
+**AI**: OpenAI Agents SDK with `gpt-4o-mini`. Handles tool schema generation, streaming events, and the run loop out of the box — raw `openai` calls would have required wiring all of that manually.
+
 
 ## Architecture and trade-offs
 
@@ -40,9 +41,11 @@ Trade-offs made under time constraints:
 
 ## Known limitations
 
+- **Model behavior is untested.** The agent has not been evaluated against a benchmark. It can answer questions that are off-topic, return numbers that look plausible but are wrong, or misinterpret a question entirely. 
 - **Fixed dimensions.** Department and category are free-text strings with no controlled vocabulary. The agent uses exact-match filtering, so inconsistent casing will produce wrong results. Custom dimensions aren't supported.
 - **Non-deterministic arithmetic.** Calculations are delegated to the model. The pre-computed `variance` and `variance_pct` fields in `query_budget` reduce this risk but don't eliminate it.
 - **No persistent chat.** History is in-memory only; a page refresh starts a fresh conversation.
+- **Error handling in the frontend is minimal.** API errors, network timeouts, and malformed SSE events surface as a generic inline message or fail silently.
 - **Dev server in Docker.** The frontend runs `next dev`, which is fine for review but not optimized for production.
 
 ## What I'd add with more time
