@@ -14,124 +14,36 @@ docker-compose up
 
 Open http://localhost:3000. A demo scenario loads automatically.
 
-## Environment variables
+## Stack
 
-| Variable | Description |
-|---|---|
-| `OPENAI_API_KEY` | **Required.** Your OpenAI key. |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Postgres credentials (defaults in `.env.example` work locally) |
-| `DATABASE_URL` | Full Postgres connection string |
-| `DJANGO_SECRET_KEY` | Change in production |
-| `DJANGO_DEBUG` | `True` for local dev |
-| `NEXT_PUBLIC_API_URL` | Backend base URL seen by the browser (`http://localhost:8000` for local) |
+The backend is Django: a REST API for managing scenarios and line items, and a streaming chat endpoint that runs an AI agent (OpenAI Agents SDK, `o4-mini`) over Server-Sent Events.
 
-## Testing
+The frontend is Next.js: a budget table and a chat panel side by side. The agent declares what it wants to show; the frontend applies it to the table live. For UI, I leaned on existing libraries rather than building custom: assistant-ui for the chat panel (streaming tool-call rendering out of the box) and Mantine for everything else (clean, data-dense components that look good without much work).
 
-Tests live in `backend/tests/`. They use pytest + pytest-django and run against SQLite — no running containers needed.
+For the AI, I used OpenAI Agents SDK with `o4-mini`. The SDK handles  a lot of boilerplate: function-tool schema generation, streaming event types, and the run loop. Raw agent calls would have required wiring all of that manually.
 
-```bash
-cd backend
-pip install -r requirements.txt
-pytest
-```
+## Architecture and trade-offs
 
-To run inside Docker (same environment as production):
+The key design choice is the separation between `query_budget` (data access) and `display_budget` (view control). The agent never directly mutates UI state — it declares intent, and the frontend executes it through an operations registry. This keeps the agent from owning render state and makes it easy to add new table operations without touching the agent.
 
-```bash
-docker-compose run --rm backend pytest
-```
+Trade-offs made under time constraints:
 
-Test files and what they cover:
+- **All state lives in `page.tsx`.** Works fine at this scale, but would need a store as the app grows.
+- **No optimistic updates.** Edits wait for a server round-trip and full refetch.
+- **`query_budget` results are stubbed in message history.** Prior tool results are replaced with `[data fetched — will re-query]` before being sent back to the model. This keeps the context window small; the agent re-queries fresh data as needed.
+- **The agent can't edit data.** Write operations are intentionally human-only — letting the agent mutate rows would require confirmation flows and rollback logic that are out of scope here.
+- **Swapping the LLM provider requires touching the agent and the SSE stream handling.** There's no abstraction layer between the Agents SDK and the rest of the backend.
 
-- `test_period_label.py` — `current_period_label`: all four period types, quarter/half boundaries
-- `test_tool_call_to_operation.py` — SSE operation mapping for `display_budget` (filters, sort, group_by, columns) and `reset_display`
-- `test_query_budget.py` — variance math (under/over budget, zero-budget edge case), burn rate, pct_of_total, dimension filters, `min/max_variance_pct` thresholds, group-by aggregation, scenario isolation
-- `test_api.py` — scenario CRUD, line item `?scenario=` filter, cascade delete, invalid period_type rejection
-- `test_chat_endpoint.py` — missing `scenario_id` → 400, GET not allowed → 405
+## Known limitations
 
-The pure-function tests (`test_period_label`, `test_tool_call_to_operation`) import from `chat/utils.py` rather than `chat/views.py` so the Agents SDK is never loaded during the test run.
+- Dimension values (department, category) are free-text strings with no controlled vocabulary. The agent uses exact-match filtering, so inconsistent casing in the data will produce wrong results. Custom dimensions aren't supported — the schema is fixed.
+- Arithmetic is delegated to the model, not computed deterministically. The pre-computed `variance` and `variance_pct` fields in `query_budget` reduce this risk but don't eliminate it.
+- Chat history is in-memory only; a page refresh starts a fresh conversation.
+- The frontend runs `next dev` in Docker, which is fine for review but not optimized for production.
 
-## What's built
+## What I'd add with more time
 
-**Backend** — Django REST Framework + PostgreSQL + uvicorn (ASGI)
-- CRUD for `BudgetScenario` and `BudgetLineItem`
-- `/api/chat/` streams Server-Sent Events via `StreamingHttpResponse`
-- OpenAI Agents SDK agent (`o4-mini`) with three tools: `query_budget`, `display_budget`, `reset_display`
-
-**Frontend** — Next.js + TypeScript + Mantine + assistant-ui
-- Inline-editable budget table with filter bar, stats bar, and computed columns
-- Chat panel (assistant-ui) connected to the SSE stream
-- Operations registry: SSE events from the agent map to live table mutations (filter, group, sort, toggle columns)
-
-## AI approach
-
-Used the **OpenAI Agents SDK** with `o4-mini`. The agent has three tools:
-
-- `query_budget` — the only data-access path; queries the DB with optional filters and group-by aggregation
-- `display_budget` — doesn't fetch data; emits an `updateView` operation over SSE that the frontend executes to update the table
-- `reset_display` — emits a `resetView` operation to restore the default view
-
-The split between data access (`query_budget`) and view control (`display_budget`) keeps the agent from owning render state. The frontend's operation registry is the single source of truth for what the table shows; the AI is a client of it.
-
-Chose the Agents SDK over raw `openai` calls for clean function-tool schema generation and fine-grained streaming events (tool call, tool result, text delta) with minimal boilerplate.
-
-## Architecture
-
-```
-Browser
-  └── Next.js
-        ├── page.tsx            — root state (scenarios, line items, filterSpec)
-        ├── BudgetTable         — renders visibleRows derived from filterSpec
-        ├── FilterBar           — manual filter controls; calls dispatch()
-        ├── ChartStrip          — Recharts mini-charts above the table
-        ├── lib/filterSpec.ts   — applyFilterSpec: filtering, n-level grouping, sorting
-        ├── lib/operations/     — operation registry (setFilter, setGroupBy, sort, columns…)
-        └── RuntimeProvider     — assistant-ui adapter; streams SSE, dispatches operations
-              │  POST /api/chat/
-              │  ← SSE: text delta | tool_call | tool_result | operation
-              ▼
-Django (ASGI / uvicorn)
-  ├── /api/scenarios/, /api/line-items/  ← DRF viewsets (full CRUD)
-  └── /api/chat/  ← StreamingHttpResponse
-        └── Agents SDK Runner → Agent (o4-mini)
-              ├── query_budget   → ORM → Postgres (filters, group-by, variance math)
-              ├── display_budget → translates args into an SSE operation event
-              └── reset_display  → emits resetView operation event
-```
-
-**Key design choice:** `display_budget` does nothing on the backend — `chat/views.py` translates its arguments into an SSE `operation` event that the frontend executes via the operations registry. The agent declares intent; the frontend owns render state.
-
-## What the agent can and cannot do
-
-**Can do:**
-- Query and aggregate budget data by department, category, period, or any combination
-- Filter by variance threshold (e.g. "everything more than 20% over budget") via `min/max_variance_pct`
-- Update the table view: filter, group, sort, toggle computed columns (`burnRate`, `pctOfTotal`, `variancePct`, `rank`)
-- Resolve relative time references ("this quarter", "this month") — current period is injected at request time
-- Answer questions using pre-computed fields: `variance_pct`, `burn_rate`, `pct_of_total`
-- Drill into what's driving a number (e.g. Engineering overspend → group by category within Engineering)
-
-**Cannot do:**
-- Write or modify budget data
-- Compare across scenarios
-- Model hypotheticals / what-if scenarios
-- Know what the user currently sees in the table (display is fire-and-forget)
-
-## Assumptions and limitations
-
-- No authentication — all data is globally visible
-- Chat history is in-memory only; page refresh starts a fresh conversation
-- Frontend runs `next dev` in Docker (fine for review, not optimized for production)
-
-## Small note
-
-Message history sent to the backend includes tool calls, but `query_budget` results are replaced with a `[data fetched — will re-query]` placeholder instead of the full budget JSON. This keeps the context window lean across long conversations while still giving the model visibility into previous `display_budget` / `reset_display` calls — so it retains display-state continuity without carrying stale data payloads into every subsequent turn.
-
-## What I'd improve with more time
-
-- Persist chat turns linked to a scenario and restore on page load
-- Stream tool-call status in the chat panel ("querying budget data…")
-- Chart widget (bar chart by department/period) alongside the table
-- "Apply suggestion" flow: when the agent proposes a budget change, confirm and write it back via the API
-- Swap `o4-mini` for `gpt-4o` for more reliable multi-tool instruction-following
-- Production Dockerfile: `next build && next start`, gunicorn workers, `DJANGO_DEBUG=False`
+- Persist chat turns linked to a scenario and restore them on page load.
+- Cross-scenario comparison — the data model supports multiple scenarios but the UI and agent are scoped to one at a time. It would be nice to allow for analysis across different scenarios.
+- CSV import — the main complexity is column mapping (which field is budget vs. actual) and normalizing free-text dimension values, which makes it a non-trivial feature.
+- User-defined dimensions to replace the hardcoded `department` / `category` fields, which would make the tool domain-agnostic.
