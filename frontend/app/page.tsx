@@ -124,7 +124,7 @@ export default function Home() {
             )}
 
             <ScrollArea style={{ flex: 1 }} p="md">
-              {lineItems.length === 0 ? (
+              {lineItems.length === 0 && !addingRow ? (
                 <Flex direction="column" align="center" justify="center" h={400} gap="sm">
                   <Text size="xl">📊</Text>
                   <Text fw={500}>No line items yet</Text>
