@@ -3,47 +3,239 @@
     "model": "budget.budgetscenario",
     "pk": 1,
     "fields": {
-      "name": "Q1 2024 Budget Review",
-      "period": "Q1 2024",
-      "description": "Quarterly budget vs actuals review for Q1 2024.",
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
+      "name": "FY 2025 Budget Review",
+      "period_type": "quarter",
+      "description": "Full-year budget vs actuals review for fiscal year 2025.",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-07-01T00:00:00Z"
     }
   },
-  {
-    "model": "budget.budgetlineitem",
-    "pk": 1,
-    "fields": {
-      "scenario": 1,
-      "department": "Marketing",
-      "category": "Paid Ads",
-      "budget_amount": "50000.00",
-      "actual_amount": "65000.00",
-      "notes": "Increased spend on paid search campaigns."
-    }
-  },
-  {
-    "model": "budget.budgetlineitem",
-    "pk": 2,
-    "fields": {
-      "scenario": 1,
-      "department": "Sales",
-      "category": "Travel",
-      "budget_amount": "20000.00",
-      "actual_amount": "27500.00",
-      "notes": "Two major trade shows in Q1."
-    }
-  },
-  {
-    "model": "budget.budgetlineitem",
-    "pk": 3,
-    "fields": {
-      "scenario": 1,
-      "department": "Engineering",
-      "category": "Tools",
-      "budget_amount": "30000.00",
-      "actual_amount": "28500.00",
-      "notes": "License renewals came in under budget."
-    }
-  }
+
+  {"model": "budget.budgetlineitem", "pk": 1, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Engineering", "category": "Salaries",
+    "budget_amount": "320000.00", "actual_amount": "318500.00", "notes": "One open headcount filled mid-March."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 2, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Engineering", "category": "Cloud Infrastructure",
+    "budget_amount": "85000.00", "actual_amount": "92400.00", "notes": "Spike from load testing new service."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 3, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Engineering", "category": "Software Licenses",
+    "budget_amount": "24000.00", "actual_amount": "23100.00", "notes": "Annual renewals for IDE and CI tools."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 4, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Engineering", "category": "Contractors",
+    "budget_amount": "60000.00", "actual_amount": "72000.00", "notes": "Extended mobile contractor through March."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 5, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Marketing", "category": "Paid Ads",
+    "budget_amount": "50000.00", "actual_amount": "65000.00", "notes": "Increased spend on paid search campaigns."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 6, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Marketing", "category": "Content & SEO",
+    "budget_amount": "18000.00", "actual_amount": "16500.00", "notes": "Freelance writer contract paused in Feb."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 7, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Marketing", "category": "Events & Sponsorships",
+    "budget_amount": "35000.00", "actual_amount": "41200.00", "notes": "Added last-minute booth at SaaStr."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 8, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Sales", "category": "Salaries & Commissions",
+    "budget_amount": "210000.00", "actual_amount": "224000.00", "notes": "Strong Q1 drove higher commissions."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 9, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Sales", "category": "Travel",
+    "budget_amount": "20000.00", "actual_amount": "27500.00", "notes": "Two major trade shows in Q1."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 10, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Sales", "category": "CRM & Tools",
+    "budget_amount": "12000.00", "actual_amount": "12000.00", "notes": "Salesforce annual contract, no change."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 11, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Operations", "category": "Office & Facilities",
+    "budget_amount": "28000.00", "actual_amount": "27200.00", "notes": "Slightly under due to renegotiated cleaning contract."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 12, "fields": {
+    "scenario": 1, "period": "Q1", "department": "Operations", "category": "Insurance",
+    "budget_amount": "9500.00", "actual_amount": "9500.00", "notes": "Fixed annual premium, paid quarterly."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 13, "fields": {
+    "scenario": 1, "period": "Q1", "department": "HR", "category": "Recruiting",
+    "budget_amount": "25000.00", "actual_amount": "31000.00", "notes": "Agency fees for two senior hires."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 14, "fields": {
+    "scenario": 1, "period": "Q1", "department": "HR", "category": "Training & Development",
+    "budget_amount": "8000.00", "actual_amount": "5200.00", "notes": "Leadership workshop postponed to Q2."
+  }},
+
+  {"model": "budget.budgetlineitem", "pk": 15, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Engineering", "category": "Salaries",
+    "budget_amount": "340000.00", "actual_amount": "342000.00", "notes": "Full team after Q1 hire."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 16, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Engineering", "category": "Cloud Infrastructure",
+    "budget_amount": "85000.00", "actual_amount": "78000.00", "notes": "Cost optimization initiative saved 8%."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 17, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Engineering", "category": "Software Licenses",
+    "budget_amount": "24000.00", "actual_amount": "26500.00", "notes": "Added Datadog APM tier upgrade."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 18, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Engineering", "category": "Contractors",
+    "budget_amount": "40000.00", "actual_amount": "40000.00", "notes": "Reduced scope after mobile launch."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 19, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Marketing", "category": "Paid Ads",
+    "budget_amount": "55000.00", "actual_amount": "52000.00", "notes": "Pulled back on display after low ROAS."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 20, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Marketing", "category": "Content & SEO",
+    "budget_amount": "20000.00", "actual_amount": "22000.00", "notes": "Hired second freelancer for product pages."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 21, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Marketing", "category": "Events & Sponsorships",
+    "budget_amount": "15000.00", "actual_amount": "14800.00", "notes": "Single webinar series, on budget."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 22, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Sales", "category": "Salaries & Commissions",
+    "budget_amount": "210000.00", "actual_amount": "198000.00", "notes": "Slower quarter, lower variable comp."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 23, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Sales", "category": "Travel",
+    "budget_amount": "15000.00", "actual_amount": "13200.00", "notes": "Fewer on-site visits than planned."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 24, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Sales", "category": "CRM & Tools",
+    "budget_amount": "12000.00", "actual_amount": "14500.00", "notes": "Added Gong licenses for call recording."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 25, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Operations", "category": "Office & Facilities",
+    "budget_amount": "28000.00", "actual_amount": "30500.00", "notes": "HVAC repair in May."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 26, "fields": {
+    "scenario": 1, "period": "Q2", "department": "Operations", "category": "Insurance",
+    "budget_amount": "9500.00", "actual_amount": "9500.00", "notes": "Fixed quarterly premium."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 27, "fields": {
+    "scenario": 1, "period": "Q2", "department": "HR", "category": "Recruiting",
+    "budget_amount": "15000.00", "actual_amount": "8000.00", "notes": "No open roles in Q2."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 28, "fields": {
+    "scenario": 1, "period": "Q2", "department": "HR", "category": "Training & Development",
+    "budget_amount": "12000.00", "actual_amount": "14500.00", "notes": "Leadership workshop moved from Q1 plus new manager onboarding."
+  }},
+
+  {"model": "budget.budgetlineitem", "pk": 29, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Engineering", "category": "Salaries",
+    "budget_amount": "345000.00", "actual_amount": "350000.00", "notes": "Mid-year raises effective July."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 30, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Engineering", "category": "Cloud Infrastructure",
+    "budget_amount": "80000.00", "actual_amount": "81500.00", "notes": "Stable after optimization."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 31, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Engineering", "category": "Software Licenses",
+    "budget_amount": "24000.00", "actual_amount": "24000.00", "notes": "No changes."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 32, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Engineering", "category": "Contractors",
+    "budget_amount": "30000.00", "actual_amount": "45000.00", "notes": "Brought in security auditor for SOC 2 prep."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 33, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Marketing", "category": "Paid Ads",
+    "budget_amount": "60000.00", "actual_amount": "58000.00", "notes": "Shifted budget to LinkedIn from Google."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 34, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Marketing", "category": "Content & SEO",
+    "budget_amount": "20000.00", "actual_amount": "19000.00", "notes": "Steady content output."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 35, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Marketing", "category": "Events & Sponsorships",
+    "budget_amount": "40000.00", "actual_amount": "48000.00", "notes": "User conference in September."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 36, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Sales", "category": "Salaries & Commissions",
+    "budget_amount": "220000.00", "actual_amount": "235000.00", "notes": "Q3 pipeline converted well."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 37, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Sales", "category": "Travel",
+    "budget_amount": "18000.00", "actual_amount": "22000.00", "notes": "Conference travel plus enterprise on-sites."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 38, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Sales", "category": "CRM & Tools",
+    "budget_amount": "14500.00", "actual_amount": "14500.00", "notes": "Stable tooling costs."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 39, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Operations", "category": "Office & Facilities",
+    "budget_amount": "28000.00", "actual_amount": "26000.00", "notes": "Under budget, no repairs."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 40, "fields": {
+    "scenario": 1, "period": "Q3", "department": "Operations", "category": "Insurance",
+    "budget_amount": "9500.00", "actual_amount": "10200.00", "notes": "Premium increase at renewal."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 41, "fields": {
+    "scenario": 1, "period": "Q3", "department": "HR", "category": "Recruiting",
+    "budget_amount": "20000.00", "actual_amount": "18000.00", "notes": "One role filled via referral, no agency fee."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 42, "fields": {
+    "scenario": 1, "period": "Q3", "department": "HR", "category": "Training & Development",
+    "budget_amount": "10000.00", "actual_amount": "11000.00", "notes": "Team offsite facilitation costs."
+  }},
+
+  {"model": "budget.budgetlineitem", "pk": 43, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Engineering", "category": "Salaries",
+    "budget_amount": "350000.00", "actual_amount": "348000.00", "notes": "One resignation in December, partial month saved."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 44, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Engineering", "category": "Cloud Infrastructure",
+    "budget_amount": "82000.00", "actual_amount": "95000.00", "notes": "Black Friday traffic spike and holiday feature rollout."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 45, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Engineering", "category": "Software Licenses",
+    "budget_amount": "24000.00", "actual_amount": "28000.00", "notes": "Added Sentry and LaunchDarkly."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 46, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Engineering", "category": "Contractors",
+    "budget_amount": "20000.00", "actual_amount": "15000.00", "notes": "SOC 2 audit wrapped up early."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 47, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Marketing", "category": "Paid Ads",
+    "budget_amount": "70000.00", "actual_amount": "82000.00", "notes": "Aggressive year-end push on all channels."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 48, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Marketing", "category": "Content & SEO",
+    "budget_amount": "20000.00", "actual_amount": "21000.00", "notes": "Year-in-review content series."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 49, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Marketing", "category": "Events & Sponsorships",
+    "budget_amount": "10000.00", "actual_amount": "8500.00", "notes": "Holiday party only, no external events."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 50, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Sales", "category": "Salaries & Commissions",
+    "budget_amount": "230000.00", "actual_amount": "260000.00", "notes": "Blowout Q4, highest commissions of the year."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 51, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Sales", "category": "Travel",
+    "budget_amount": "12000.00", "actual_amount": "10500.00", "notes": "Fewer trips during holiday season."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 52, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Sales", "category": "CRM & Tools",
+    "budget_amount": "14500.00", "actual_amount": "14500.00", "notes": "No changes to tooling."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 53, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Operations", "category": "Office & Facilities",
+    "budget_amount": "28000.00", "actual_amount": "32000.00", "notes": "End-of-year deep cleaning and furniture refresh."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 54, "fields": {
+    "scenario": 1, "period": "Q4", "department": "Operations", "category": "Insurance",
+    "budget_amount": "10200.00", "actual_amount": "10200.00", "notes": "New quarterly rate after renewal."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 55, "fields": {
+    "scenario": 1, "period": "Q4", "department": "HR", "category": "Recruiting",
+    "budget_amount": "30000.00", "actual_amount": "35000.00", "notes": "Backfill for resignation plus new role for 2026."
+  }},
+  {"model": "budget.budgetlineitem", "pk": 56, "fields": {
+    "scenario": 1, "period": "Q4", "department": "HR", "category": "Training & Development",
+    "budget_amount": "6000.00", "actual_amount": "4000.00", "notes": "Budget carried to Q1 2026 planning."
+  }}
 ]
