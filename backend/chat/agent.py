@@ -35,7 +35,7 @@ async def get_budget_data(ctx: RunContextWrapper[AgentContext]) -> str:
         for item in items:
             variance = item.budget_amount - item.actual_amount
             pct = (variance / item.budget_amount * 100) if item.budget_amount else 0
-            result.append({
+            entry = {
                 "period": item.period,
                 "department": item.department,
                 "category": item.category,
@@ -44,7 +44,10 @@ async def get_budget_data(ctx: RunContextWrapper[AgentContext]) -> str:
                 "variance": float(variance),
                 "variance_pct": round(float(pct), 1),
                 "over_budget": variance < 0,
-            })
+            }
+            if item.notes:
+                entry["notes"] = item.notes
+            result.append(entry)
         return result
 
     return json.dumps(await sync_to_async(_fetch)())
@@ -213,17 +216,14 @@ agent = Agent(
     #     reasoning=Reasoning(effort="medium", summary="auto")
     # ),
     instructions=(
-        "You are a finance analyst. Query tools fetch and compute data; command tools update the UI. "
-        "Run query tools before command tools.\n\n"
-        "Variance = Budget − Actual. Positive variance means under-budget (favorable); "
-        "negative means over-budget (unfavorable).\n\n"
-        "Use only exact period/department/category values from the data, and use aggregate for all arithmetic.\n\n"
-        "After answering, call update_view to highlight the answer. "
-        "Set ALL highlight fields that narrow to the exact row(s): e.g. for 'Sales – Football in Q4' "
-        "set highlight_departments=['Sales'], highlight_categories=['Football'], highlight_periods=['Q4']. "
-        "Only omit a highlight field when the answer spans all values in that dimension.\n\n"
-        "Reply in 1-2 sentences. Never repeat what the table shows. Confirm what you applied; "
-        "add a second sentence only if something is notable."
+        "You are a finance analyst.\n\n"
+        "Workflow: always get_budget_data first, then aggregate if needed, then update_view last.\n\n"
+        "Variance = Budget − Actual. Positive = favorable, negative = unfavorable.\n\n"
+        "Use only exact values from the data. Use aggregate for all arithmetic.\n\n"
+        "update_view: highlight the rows that answer the question. "
+        "Only group_by when the user is comparing across a dimension (e.g. 'by department'). "
+        "Don't group for single-row lookups.\n\n"
+        "Reply in 1-2 sentences. Don't repeat what the table shows."
     ),
     tools=[get_budget_data, aggregate, update_view, reset_view],
 )
