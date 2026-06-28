@@ -3,22 +3,6 @@ import { PeriodType, periodLabel, sortPeriodValues } from './periods'
 
 export type GroupByField = 'period' | 'department' | 'category'
 
-export type HighlightSpec = {
-  departments?: string[]
-  categories?: string[]
-  periods?: string[]
-}
-
-export function matchesHighlight(
-  item: { department: string; category: string; period: string },
-  spec: HighlightSpec,
-): boolean {
-  if (spec.departments?.length && !spec.departments.includes(item.department)) return false
-  if (spec.categories?.length && !spec.categories.includes(item.category)) return false
-  if (spec.periods?.length && !spec.periods.includes(item.period)) return false
-  return true
-}
-
 export type FilterSpec = {
   departments?: string[]
   categories?: string[]

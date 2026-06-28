@@ -6,7 +6,7 @@ import {
 } from '@mantine/core'
 import { Plus } from 'lucide-react'
 import { api, BudgetScenario, BudgetLineItem } from '@/lib/api'
-import { FilterSpec, HighlightSpec, applyFilterSpec } from '@/lib/filterSpec'
+import { FilterSpec, applyFilterSpec } from '@/lib/filterSpec'
 import { PeriodType } from '@/lib/periods'
 import { useOperations } from '@/lib/operations'
 import { RuntimeProvider } from './RuntimeProvider'
@@ -25,7 +25,6 @@ export default function Home() {
   const [newRow, setNewRow] = useState<Partial<BudgetLineItem>>({})
   const [showModal, setShowModal] = useState(false)
   const [filterSpec, setFilterSpec] = useState<FilterSpec>({})
-  const [highlightSpec, setHighlightSpec] = useState<HighlightSpec | null>(null)
 
   useEffect(() => {
     api.getScenarios().then(data => {
@@ -37,7 +36,6 @@ export default function Home() {
   useEffect(() => {
     if (selectedId) {
       setFilterSpec({})
-      setHighlightSpec(null)
       api.getLineItems(selectedId).then(setLineItems)
     }
   }, [selectedId])
@@ -80,11 +78,9 @@ export default function Home() {
   const { dispatch } = useOperations({
     lineItems,
     filterSpec,
-    highlightSpec,
     scenarioId: selectedId,
     refresh,
     setFilterSpec,
-    setHighlightSpec,
   })
 
   // ── Derived state ───────────────────────────────────────────────────────
@@ -146,7 +142,6 @@ export default function Home() {
                     visibleRows={visibleRows}
                     activeSpec={activeSpec}
                     activePeriodType={activePeriodType}
-                    highlightSpec={highlightSpec}
                     refresh={refresh}
                     selectedId={selectedId}
                     onDeleteItem={deleteItem}

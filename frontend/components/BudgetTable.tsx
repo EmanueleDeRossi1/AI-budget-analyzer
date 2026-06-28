@@ -10,7 +10,6 @@ import { FilterSpec, FilteredRow, GroupByField } from '@/lib/filterSpec'
 import { PeriodType, PERIOD_TYPE_LABELS, periodLabel, periodOptions } from '@/lib/periods'
 import { fmt } from '@/lib/utils'
 import { useInlineEdit, EditableField } from '@/lib/useInlineEdit'
-import { HighlightSpec, matchesHighlight } from '@/lib/filterSpec'
 import EditableCell, { CellInput } from '@/components/EditableCell'
 import SuggestInput from '@/components/SuggestInput'
 import EditRow from '@/components/EditRow'
@@ -38,13 +37,12 @@ function VariancePct({ pct }: { pct: number }) {
 // ── Group header row ─────────────────────────────────────────────────────────
 
 function GroupHeaderRow({
-  row, periodType, activeColumns, allRowsContext, highlighted, collapsed, onToggle,
+  row, periodType, activeColumns, allRowsContext, collapsed, onToggle,
 }: {
   row: FilteredRow
   periodType: PeriodType
   activeColumns: DerivedColumnDef[]
   allRowsContext: { budget: number; actual: number }[]
-  highlighted: boolean
   collapsed: boolean
   onToggle: () => void
 }) {
@@ -55,10 +53,7 @@ function GroupHeaderRow({
     : row.groupValue
 
   return (
-    <Table.Tr style={{
-      background: bg,
-      ...(highlighted ? { outline: '2px solid var(--mantine-color-blue-4)', outlineOffset: '-2px' } : {}),
-    }}>
+    <Table.Tr style={{ background: bg }}>
       <Table.Td colSpan={3} style={{ paddingLeft, paddingTop: 8, paddingBottom: 8 }}>
         <Group gap={4}>
           <ActionIcon variant="subtle" size="xs" color="gray" onClick={onToggle} style={{ width: 20, height: 20 }}>
@@ -94,7 +89,6 @@ export default function BudgetTable({
   visibleRows,
   activeSpec,
   activePeriodType,
-  highlightSpec,
   refresh,
   selectedId,
   onDeleteItem,
@@ -110,7 +104,6 @@ export default function BudgetTable({
   visibleRows: FilteredRow[]
   activeSpec: FilterSpec
   activePeriodType: PeriodType
-  highlightSpec: HighlightSpec | null
   refresh: () => void
   selectedId: number | null
   onDeleteItem: (id: number) => void
@@ -258,35 +251,9 @@ export default function BudgetTable({
     })
   }
 
-  // ── Highlight logic ──────────────────────────────────────────────────────
-
-  function isGroupHighlighted(row: FilteredRow): boolean {
-    if (!highlightSpec || !row.groupField || !row.groupValue) return false
-    // Build a partial match object from the group row's known dimensions
-    const match: { department: string; category: string; period: string } = {
-      department: (row.department as string) ?? '',
-      category: (row.category as string) ?? '',
-      period: (row.period as string) ?? '',
-    }
-    // Fill in the group dimension
-    match[row.groupField] = row.groupValue
-    return matchesHighlight(match, highlightSpec)
-  }
-
-  function isLeafHighlighted(item: BudgetLineItem): boolean {
-    if (!highlightSpec) return false
-    // When grouped, highlights go on group rows, not leaves
-    if (isGrouped) return false
-    return matchesHighlight(
-      { department: item.department, category: item.category, period: item.period ?? '' },
-      highlightSpec,
-    )
-  }
-
   // ── Row rendering ────────────────────────────────────────────────────────
 
   function renderLeafRow(row: FilteredRow, item: BudgetLineItem) {
-    const highlighted = isLeafHighlighted(item)
     const paddingLeft = isGrouped ? 8 + row.level * 16 : undefined
     const actions = (
       <Group gap={4} wrap="nowrap" style={{ opacity: 0 }} className="row-actions">
@@ -300,7 +267,7 @@ export default function BudgetTable({
     )
 
     return (
-      <Table.Tr key={row.key} style={highlighted ? { outline: '2px solid var(--mantine-color-blue-4)', outlineOffset: '-2px' } : undefined}>
+      <Table.Tr key={row.key}>
         <Table.Td style={paddingLeft ? { paddingLeft } : undefined}>
           {periodCell(item, row.period ? periodLabel(row.period, activePeriodType) : '—')}
         </Table.Td>
@@ -357,7 +324,6 @@ export default function BudgetTable({
           periodType={activePeriodType}
           activeColumns={activeColumns}
           allRowsContext={allRowsContext}
-          highlighted={isGroupHighlighted(row)}
           collapsed={!expandedGroups.has(row.key)}
           onToggle={() => toggleCollapse(row.key)}
         />

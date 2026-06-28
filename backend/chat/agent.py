@@ -95,21 +95,17 @@ async def query_budget(
 def display_budget(
     ctx: RunContextWrapper[AgentContext],
     filters: DimensionFilter = DimensionFilter(),
-    highlights: DimensionFilter = DimensionFilter(),
     group_by: list[str] = [],
     sort_by: str = "variance",
     sort_dir: str = "desc",
     columns: list[str] = [],
 ) -> str:
     """
-    Update the budget table: filter, group, sort, highlight, and toggle computed columns.
+    Update the budget table: filter, group, sort, and toggle computed columns.
     Use only exact values from query_budget.
 
     filters: hide non-matching rows.
              fields: period, department, category (each a list of values to include)
-
-    highlights: draw attention to rows without hiding others.
-                fields: period, department, category
 
     group_by: e.g. ["department"] or ["period", "category"]
               valid values: "period", "department", "category"
@@ -122,20 +118,12 @@ def display_budget(
              valid values: "pctOfTotal", "burnRate", "variancePct", "runningTotal", "rank"
     """
     params: dict = {"sort_by": sort_by, "sort_dir": sort_dir}
-    # Flatten filters → plural keys expected by the frontend registry
     if filters.period:
         params["periods"] = filters.period
     if filters.department:
         params["departments"] = filters.department
     if filters.category:
         params["categories"] = filters.category
-    # Flatten highlights → highlight_* keys
-    if highlights.period:
-        params["highlight_periods"] = highlights.period
-    if highlights.department:
-        params["highlight_departments"] = highlights.department
-    if highlights.category:
-        params["highlight_categories"] = highlights.category
     if group_by:
         params["group_by"] = group_by
     if columns:
@@ -147,7 +135,7 @@ def display_budget(
 @function_tool
 def reset_display(ctx: RunContextWrapper[AgentContext]) -> str:
     """
-    Clear all filters, groupings, highlights, and computed columns,
+    Clear all filters, groupings, and computed columns,
     returning the table to its default flat view.
     """
     ctx.context.emit("resetView", {})
@@ -165,7 +153,7 @@ agent = Agent(
         "Variance = Budget − Actual. Positive = favorable, negative = unfavorable.\n\n"
         "Use only exact values from the data. Do your own arithmetic carefully "
         "using the pre-computed fields (variance, variance_pct) where possible.\n\n"
-        "display_budget: highlight the rows that answer the question. "
+        "display_budget: filter to the rows that answer the question. "
         "Only group_by when the user is comparing across a dimension (e.g. 'by department'). "
         "Don't group for single-row lookups.\n\n"
         "When showing percentages or comparisons, toggle the appropriate computed columns "

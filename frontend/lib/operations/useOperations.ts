@@ -2,17 +2,15 @@
 
 import { useCallback } from 'react'
 import { BudgetLineItem } from '../api'
-import { FilterSpec, HighlightSpec } from '../filterSpec'
+import { FilterSpec } from '../filterSpec'
 import { getOperation, ViewResult, OperationContext } from './registry'
 
 type OperationsState = {
   lineItems: BudgetLineItem[]
   filterSpec: FilterSpec
-  highlightSpec: HighlightSpec | null
   scenarioId: number | null
   refresh: () => void
   setFilterSpec: (spec: FilterSpec) => void
-  setHighlightSpec: (spec: HighlightSpec | null) => void
 }
 
 export function useOperations(state: OperationsState) {
@@ -27,7 +25,6 @@ export function useOperations(state: OperationsState) {
       const ctx: OperationContext = {
         lineItems: state.lineItems,
         filterSpec: state.filterSpec,
-        highlightSpec: state.highlightSpec,
         scenarioId: state.scenarioId,
         refresh: state.refresh,
       }
@@ -38,9 +35,6 @@ export function useOperations(state: OperationsState) {
         const viewResult = result as ViewResult
         if (viewResult.filterSpec !== undefined) {
           state.setFilterSpec(viewResult.filterSpec)
-        }
-        if (viewResult.highlightSpec !== undefined) {
-          state.setHighlightSpec(viewResult.highlightSpec)
         }
         return result as T
       }

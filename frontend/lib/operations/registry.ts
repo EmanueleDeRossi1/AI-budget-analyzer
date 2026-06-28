@@ -1,5 +1,5 @@
 import { BudgetLineItem } from '../api'
-import { FilterSpec, HighlightSpec, GroupByField } from '../filterSpec'
+import { FilterSpec, GroupByField } from '../filterSpec'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -8,14 +8,12 @@ export type OperationKind = 'view' | 'compute' | 'data'
 export type OperationContext = {
   lineItems: BudgetLineItem[]
   filterSpec: FilterSpec
-  highlightSpec: HighlightSpec | null
   scenarioId: number | null
   refresh: () => void
 }
 
 export type ViewResult = {
   filterSpec?: FilterSpec
-  highlightSpec?: HighlightSpec | null
 }
 
 export type OperationDef<TParams = any, TResult = any> = {
@@ -116,34 +114,10 @@ const setSort: OperationDef<
   }),
 }
 
-const highlight: OperationDef<
-  { departments?: string[]; categories?: string[]; periods?: string[] },
-  ViewResult
-> = {
-  id: 'highlight',
-  kind: 'view',
-  execute: (_ctx, params) => ({
-    highlightSpec: {
-      ...(params.departments?.length ? { departments: params.departments } : {}),
-      ...(params.categories?.length ? { categories: params.categories } : {}),
-      ...(params.periods?.length ? { periods: params.periods } : {}),
-    },
-  }),
-}
-
-const clearHighlight: OperationDef<Record<string, never>, ViewResult> = {
-  id: 'clearHighlight',
-  kind: 'view',
-  execute: () => ({ highlightSpec: null }),
-}
-
 const resetView: OperationDef<Record<string, never>, ViewResult> = {
   id: 'resetView',
   kind: 'view',
-  execute: () => ({
-    filterSpec: {},
-    highlightSpec: null,
-  }),
+  execute: () => ({ filterSpec: {} }),
 }
 
 const addColumn: OperationDef<{ column: string }, ViewResult> = {
@@ -191,17 +165,14 @@ const updateView: OperationDef<
     group_by?: GroupByField[]
     sort_by?: FilterSpec['sort_by']
     sort_dir?: FilterSpec['sort_dir']
-    highlight_departments?: string[]
-    highlight_categories?: string[]
-    highlight_periods?: string[]
     columns?: string[]
   },
   ViewResult
 > = {
   id: 'updateView',
   kind: 'view',
-  execute: (ctx, params) => {
-    const filterSpec: FilterSpec = {
+  execute: (ctx, params) => ({
+    filterSpec: {
       ...ctx.filterSpec,
       ...(params.departments !== undefined ? { departments: params.departments.length ? params.departments : undefined } : {}),
       ...(params.categories !== undefined ? { categories: params.categories.length ? params.categories : undefined } : {}),
@@ -210,22 +181,8 @@ const updateView: OperationDef<
       ...(params.sort_by !== undefined ? { sort_by: params.sort_by } : {}),
       ...(params.sort_dir !== undefined ? { sort_dir: params.sort_dir } : {}),
       ...(params.columns !== undefined ? { columns: params.columns.length ? params.columns : undefined } : {}),
-    }
-
-    const hasHighlight = params.highlight_departments?.length ||
-      params.highlight_categories?.length ||
-      params.highlight_periods?.length
-
-    const highlightSpec: HighlightSpec | null = hasHighlight
-      ? {
-          ...(params.highlight_departments?.length ? { departments: params.highlight_departments } : {}),
-          ...(params.highlight_categories?.length ? { categories: params.highlight_categories } : {}),
-          ...(params.highlight_periods?.length ? { periods: params.highlight_periods } : {}),
-        }
-      : null
-
-    return { filterSpec, highlightSpec }
-  },
+    },
+  }),
 }
 
 // ── Compute Operations ───────────────────────────────────────────────────────
@@ -418,8 +375,6 @@ export const registry: Record<string, OperationDef> = {
   setFilter,
   setGroupBy,
   setSort,
-  highlight,
-  clearHighlight,
   resetView,
   addColumn,
   removeColumn,
