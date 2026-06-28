@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from typing import Optional
 from agents import Agent, function_tool, RunContextWrapper
 from asgiref.sync import sync_to_async
 from budget.models import BudgetLineItem
@@ -26,6 +27,8 @@ async def query_budget(
     ctx: RunContextWrapper[AgentContext],
     filters: DimensionFilter = DimensionFilter(),
     group_by: list[str] = [],
+    min_variance_pct: Optional[float] = None,
+    max_variance_pct: Optional[float] = None,
 ) -> str:
     """
     Fetch budget line items for the current scenario with pre-computed variances.
@@ -37,10 +40,25 @@ async def query_budget(
     group_by: aggregate by dimension(s), e.g. ["department"] or ["period", "category"]
               valid values: "period", "department", "category"
               omit for raw rows.
+
+    min_variance_pct / max_variance_pct: filter rows by variance %.
+        variance_pct = (budget - actual) / budget * 100
+        Positive = under budget, negative = over budget.
+        Example — rows more than 20% over budget: max_variance_pct=-20
+        Example — rows at least 10% under budget: min_variance_pct=10
+
+    Each row includes:
+      variance_pct  — (budget − actual) / budget × 100
+      burn_rate     — actual / budget × 100  (% of budget consumed)
+      pct_of_total  — this row's actual as % of total scenario spend
     """
     def _fetch():
-        qs = BudgetLineItem.objects.filter(scenario_id=ctx.context.scenario_id)
+        from django.db.models import Sum
 
+        all_qs = BudgetLineItem.objects.filter(scenario_id=ctx.context.scenario_id)
+        total_actual = float(all_qs.aggregate(t=Sum("actual_amount"))["t"] or 0)
+
+        qs = all_qs
         for dim, values in filters.model_dump().items():
             if values:
                 qs = qs.filter(**{f"{dim}__in": values})
@@ -48,41 +66,51 @@ async def query_budget(
         valid_group = [g for g in group_by if g in DimensionFilter.model_fields]
 
         if valid_group:
-            from django.db.models import Sum
             rows = qs.values(*valid_group).annotate(
                 budget_amount=Sum("budget_amount"),
                 actual_amount=Sum("actual_amount"),
             )
             result = []
             for row in rows:
-                variance = row["budget_amount"] - row["actual_amount"]
-                pct = (variance / row["budget_amount"] * 100) if row["budget_amount"] else 0
+                b = float(row["budget_amount"])
+                a = float(row["actual_amount"])
+                variance = b - a
                 result.append({
                     **{k: row[k] for k in valid_group},
-                    "budget": float(row["budget_amount"]),
-                    "actual": float(row["actual_amount"]),
-                    "variance": float(variance),
-                    "variance_pct": round(float(pct), 1),
+                    "budget": b,
+                    "actual": a,
+                    "variance": round(variance, 2),
+                    "variance_pct": round((variance / b * 100) if b else 0, 1),
+                    "burn_rate": round((a / b * 100) if b else 0, 1),
+                    "pct_of_total": round((a / total_actual * 100) if total_actual else 0, 1),
                     "over_budget": variance < 0,
                 })
         else:
             result = []
             for item in list(qs):
-                variance = item.budget_amount - item.actual_amount
-                pct = (variance / item.budget_amount * 100) if item.budget_amount else 0
+                b = float(item.budget_amount)
+                a = float(item.actual_amount)
+                variance = b - a
                 entry = {
                     "period": item.period,
                     "department": item.department,
                     "category": item.category,
-                    "budget": float(item.budget_amount),
-                    "actual": float(item.actual_amount),
-                    "variance": float(variance),
-                    "variance_pct": round(float(pct), 1),
+                    "budget": b,
+                    "actual": a,
+                    "variance": round(variance, 2),
+                    "variance_pct": round((variance / b * 100) if b else 0, 1),
+                    "burn_rate": round((a / b * 100) if b else 0, 1),
+                    "pct_of_total": round((a / total_actual * 100) if total_actual else 0, 1),
                     "over_budget": variance < 0,
                 }
                 if item.notes:
                     entry["notes"] = item.notes
                 result.append(entry)
+
+        if min_variance_pct is not None:
+            result = [r for r in result if r["variance_pct"] >= min_variance_pct]
+        if max_variance_pct is not None:
+            result = [r for r in result if r["variance_pct"] <= max_variance_pct]
 
         return result
 
@@ -97,7 +125,7 @@ def display_budget(
     sort_by: str = "variance",
     sort_dir: str = "desc",
     columns: list[str] = [],
-) -> str:
+) -> None:
     """
     Update the budget table: filter, group, sort, and toggle computed columns.
     Use only exact values from query_budget.
@@ -113,18 +141,19 @@ def display_budget(
     sort_dir: "desc" | "asc"
 
     columns: toggle computed columns, e.g. ["pctOfTotal", "burnRate"]
-             valid values: "pctOfTotal", "burnRate", "variancePct", "runningTotal", "rank"
+             valid values: "pctOfTotal", "burnRate", "variancePct", "rank"
     """
-    return "View updated."
+    # Side effect is handled by the frontend via the SSE "operation" event emitted
+    # in chat/views.py — the return value here is never read.
 
 
 @function_tool
-def reset_display(ctx: RunContextWrapper[AgentContext]) -> str:
+def reset_display(ctx: RunContextWrapper[AgentContext]) -> None:
     """
     Clear all filters, groupings, and computed columns,
     returning the table to its default flat view.
     """
-    return "View reset."
+    # Side effect is handled by the frontend via the SSE "operation" event.
 
 
 # ── Agent ─────────────────────────────────────────────────────────────────────
@@ -136,8 +165,15 @@ agent = Agent(
         "You are a finance analyst.\n\n"
         "Workflow: always query_budget first, then display_budget to show the answer.\n\n"
         "Variance = Budget − Actual. Positive = favorable, negative = unfavorable.\n\n"
-        "Use only exact values from the data. Do your own arithmetic carefully "
-        "using the pre-computed fields (variance, variance_pct) where possible.\n\n"
+        "Use only exact values from the data. Rely on pre-computed fields where possible:\n"
+        "  variance_pct  — how far off from budget (negative = over budget)\n"
+        "  burn_rate     — % of budget consumed so far\n"
+        "  pct_of_total  — share of total scenario spend\n\n"
+        "Threshold filtering: use min_variance_pct / max_variance_pct on query_budget "
+        "to pre-filter by variance %. E.g. 'more than 20% over budget' → max_variance_pct=-20. "
+        "Then pass only those matching dimension values to display_budget.\n\n"
+        "Current period: a system message tells you today's date and current period. "
+        "Use it to resolve 'this quarter', 'this month', etc. to the correct period value.\n\n"
         "display_budget: filter to the rows that answer the question. "
         "Only group_by when the user is comparing across a dimension (e.g. 'by department'). "
         "Don't group for single-row lookups.\n\n"

@@ -54,21 +54,42 @@ Chose the Agents SDK over raw `openai` calls for clean function-tool schema gene
 ```
 Browser
   └── Next.js
-        ├── BudgetTable — driven by filterSpec
-        └── RuntimeProvider (assistant-ui adapter)
+        ├── page.tsx            — root state (scenarios, line items, filterSpec)
+        ├── BudgetTable         — renders visibleRows derived from filterSpec
+        ├── FilterBar           — manual filter controls; calls dispatch()
+        ├── ChartStrip          — Recharts mini-charts above the table
+        ├── lib/filterSpec.ts   — applyFilterSpec: filtering, n-level grouping, sorting
+        ├── lib/operations/     — operation registry (setFilter, setGroupBy, sort, columns…)
+        └── RuntimeProvider     — assistant-ui adapter; streams SSE, dispatches operations
               │  POST /api/chat/
-              │  ← SSE: text delta | tool_call | operation
+              │  ← SSE: text delta | tool_call | tool_result | operation
               ▼
 Django (ASGI / uvicorn)
-  ├── /api/scenarios/, /api/line-items/  ← DRF viewsets
+  ├── /api/scenarios/, /api/line-items/  ← DRF viewsets (full CRUD)
   └── /api/chat/  ← StreamingHttpResponse
         └── Agents SDK Runner → Agent (o4-mini)
-              ├── query_budget → ORM → Postgres
-              ├── display_budget → operation event in SSE
-              └── reset_display → operation event in SSE
+              ├── query_budget   → ORM → Postgres (filters, group-by, variance math)
+              ├── display_budget → translates args into an SSE operation event
+              └── reset_display  → emits resetView operation event
 ```
 
-**Key trade-off:** `display_budget` is a fire-and-forget SSE side-effect — the agent receives `"View updated."` while the browser independently receives and executes the operation. The agent cannot confirm what the user actually sees, but this keeps the agent prompt simple and avoids round-tripping render state through the LLM.
+**Key design choice:** `display_budget` does nothing on the backend — `chat/views.py` translates its arguments into an SSE `operation` event that the frontend executes via the operations registry. The agent declares intent; the frontend owns render state.
+
+## What the agent can and cannot do
+
+**Can do:**
+- Query and aggregate budget data by department, category, period, or any combination
+- Filter by variance threshold (e.g. "everything more than 20% over budget") via `min/max_variance_pct`
+- Update the table view: filter, group, sort, toggle computed columns (`burnRate`, `pctOfTotal`, `variancePct`, `rank`)
+- Resolve relative time references ("this quarter", "this month") — current period is injected at request time
+- Answer questions using pre-computed fields: `variance_pct`, `burn_rate`, `pct_of_total`
+- Drill into what's driving a number (e.g. Engineering overspend → group by category within Engineering)
+
+**Cannot do:**
+- Write or modify budget data
+- Compare across scenarios
+- Model hypotheticals / what-if scenarios
+- Know what the user currently sees in the table (display is fire-and-forget)
 
 ## Assumptions and limitations
 

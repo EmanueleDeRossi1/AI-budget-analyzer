@@ -325,17 +325,6 @@ export const derivedColumns: Record<string, DerivedColumnDef> = {
     format: fmtPct,
     execute: () => { throw new Error('Use compute() for derived columns') },
   },
-  runningTotal: {
-    id: 'runningTotal',
-    kind: 'compute',
-    column: true,
-    label: 'Running Total',
-    description: 'Cumulative actual spend',
-    // This is computed at the table level since it depends on row order
-    compute: () => 0, // placeholder — computed in BudgetTable with index awareness
-    format: fmtMoney,
-    execute: () => { throw new Error('Use compute() for derived columns') },
-  },
   rank: {
     id: 'rank',
     kind: 'compute',

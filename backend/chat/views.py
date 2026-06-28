@@ -1,9 +1,27 @@
 import json
+from datetime import date as _date
 from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from asgiref.sync import sync_to_async
 from agents import Runner
+from budget.models import BudgetScenario
 from .agent import agent, AgentContext
+
+
+def _current_period_label(period_type: str) -> str:
+    today = _date.today()
+    if period_type == 'month':
+        return today.strftime('%b %Y')          # "Jun 2026"
+    if period_type == 'quarter':
+        q = (today.month - 1) // 3 + 1
+        return f"Q{q} {today.year}"             # "Q2 2026"
+    if period_type == 'half':
+        h = 1 if today.month <= 6 else 2
+        return f"H{h} {today.year}"             # "H1 2026"
+    if period_type == 'year':
+        return str(today.year)                  # "2026"
+    return today.strftime('%Y-%m-%d')           # custom fallback
 
 
 def _sse(payload: dict) -> str:
@@ -36,9 +54,18 @@ async def chat(request):
 
     context = AgentContext(scenario_id=scenario_id)
 
+    scenario = await sync_to_async(BudgetScenario.objects.get)(id=scenario_id)
+    current_period = _current_period_label(scenario.period_type)
+    today_str = _date.today().strftime('%B %d, %Y')
+    context_msg = {
+        "role": "system",
+        "content": f"Today is {today_str}. The current period for this scenario is: {current_period}.",
+    }
+    messages = [context_msg] + data.get("messages", [])
+
     async def stream():
         try:
-            result = Runner.run_streamed(agent, data.get("messages", []), context=context)
+            result = Runner.run_streamed(agent, messages, context=context)
             async for event in result.stream_events():
                 if event.type == "run_item_stream_event":
                     item = event.item

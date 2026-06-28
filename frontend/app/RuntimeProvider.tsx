@@ -8,6 +8,7 @@ import {
   type ToolCallMessagePart,
   type TextMessagePart,
 } from '@assistant-ui/react'
+import { API_BASE } from '@/lib/api'
 
 // Content parts that accumulate over the stream lifetime of one assistant turn.
 type ContentState = {
@@ -78,7 +79,7 @@ export function RuntimeProvider({
         }
 
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/chat/`,
+          `${API_BASE}/api/chat/`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

@@ -1,6 +1,6 @@
 import { PeriodType } from './periods'
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
 export interface BudgetScenario {
   id: number
@@ -21,11 +21,13 @@ export interface BudgetLineItem {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   })
   if (!res.ok) throw new Error(`API error: ${res.status}`)
+  // 204 No Content — return undefined cast to T
+  if (res.status === 204) return undefined as T
   return res.json()
 }
 
@@ -35,7 +37,7 @@ export const api = {
   createScenario: (data: Partial<BudgetScenario>) =>
     request<BudgetScenario>('/api/scenarios/', { method: 'POST', body: JSON.stringify(data) }),
   deleteScenario: (id: number) =>
-    fetch(`${BASE}/api/scenarios/${id}/`, { method: 'DELETE' }),
+    request<void>(`/api/scenarios/${id}/`, { method: 'DELETE' }),
 
   getLineItems: (scenarioId: number) =>
     request<BudgetLineItem[]>(`/api/line-items/?scenario=${scenarioId}`),
@@ -44,5 +46,5 @@ export const api = {
   updateLineItem: (id: number, data: Partial<BudgetLineItem>) =>
     request<BudgetLineItem>(`/api/line-items/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteLineItem: (id: number) =>
-    fetch(`${BASE}/api/line-items/${id}/`, { method: 'DELETE' }),
+    request<void>(`/api/line-items/${id}/`, { method: 'DELETE' }),
 }
