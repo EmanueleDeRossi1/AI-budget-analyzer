@@ -13,10 +13,10 @@ import { useOperations } from '@/lib/operations'
 import { RuntimeProvider } from './RuntimeProvider'
 import { Thread } from '@/components/assistant-ui/thread'
 import ScenarioCombobox from '@/components/ScenarioCombobox'
-import StatsBar from '@/components/StatsBar'
 import FilterBar from '@/components/FilterBar'
 import NewScenarioModal from '@/components/NewScenarioModal'
 import BudgetTable from '@/components/BudgetTable'
+import ChartStrip from '@/components/ChartStrip'
 
 export default function Home() {
   const [scenarios, setScenarios] = useState<BudgetScenario[]>([])
@@ -120,7 +120,9 @@ export default function Home() {
           </Box>
 
           {/* Table area */}
-          {lineItems.length > 0 && <StatsBar items={lineItems} />}
+          {lineItems.length > 0 && (
+            <ChartStrip lineItems={lineItems} filterSpec={filterSpec} periodType={activePeriodType} />
+          )}
           {lineItems.length > 0 && (
             <FilterBar items={lineItems} spec={filterSpec} dispatch={dispatch} periodType={activePeriodType} />
           )}

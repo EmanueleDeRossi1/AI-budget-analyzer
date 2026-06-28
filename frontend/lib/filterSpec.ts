@@ -184,8 +184,7 @@ function groupRecursive(
 
 // ── main export ───────────────────────────────────────────────────────────────
 
-export function applyFilterSpec(items: BudgetLineItem[], spec: FilterSpec): FilteredRow[] {
-  // 1. Filter
+export function applyFilters(items: BudgetLineItem[], spec: FilterSpec): BudgetLineItem[] {
   let filtered = items
   if (spec.departments?.length)
     filtered = filtered.filter(i => spec.departments!.includes(i.department))
@@ -193,6 +192,12 @@ export function applyFilterSpec(items: BudgetLineItem[], spec: FilterSpec): Filt
     filtered = filtered.filter(i => spec.categories!.includes(i.category))
   if (spec.periods?.length)
     filtered = filtered.filter(i => spec.periods!.includes(i.period))
+  return filtered
+}
+
+export function applyFilterSpec(items: BudgetLineItem[], spec: FilterSpec): FilteredRow[] {
+  // 1. Filter
+  let filtered = applyFilters(items, spec)
 
   const groupBy = spec.group_by ?? []
   const rows = filtered.map(toRow)
