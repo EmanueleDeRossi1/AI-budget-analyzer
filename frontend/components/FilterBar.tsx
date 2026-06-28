@@ -7,11 +7,11 @@ import { PeriodType, PERIOD_TYPE_LABELS, periodLabel } from '@/lib/periods'
 import SegmentButton from '@/components/SegmentButton'
 
 export default function FilterBar({
-  items, spec, onChange, periodType,
+  items, spec, dispatch, periodType,
 }: {
   items: { period: string; department: string; category: string }[]
   spec: FilterSpec
-  onChange: (s: FilterSpec) => void
+  dispatch: (operationId: string, params?: any) => any
   periodType: PeriodType
 }) {
   const rawPeriods = Array.from(new Set(items.map(i => i.period).filter(Boolean)))
@@ -35,9 +35,9 @@ export default function FilterBar({
 
   function setSortBy(s: FilterSpec['sort_by']) {
     if ((spec.sort_by ?? 'variance') === s) {
-      onChange({ ...spec, sort_dir: spec.sort_dir === 'asc' ? 'desc' : 'asc' })
+      dispatch('setSort', { sort_by: s, sort_dir: spec.sort_dir === 'asc' ? 'desc' : 'asc' })
     } else {
-      onChange({ ...spec, sort_by: s, sort_dir: 'desc' })
+      dispatch('setSort', { sort_by: s, sort_dir: 'desc' })
     }
   }
 
@@ -60,6 +60,13 @@ export default function FilterBar({
     cursor: 'pointer', padding: '0 2px', fontSize: 12, lineHeight: 1, opacity: 0.7,
   }
 
+  // Group-by toggle goes through the existing toggleGroupBy helper,
+  // then dispatches the full new group_by array via setGroupBy
+  function handleToggleGroupBy(field: GroupByField) {
+    const next = toggleGroupBy(spec, field)
+    dispatch('setGroupBy', { group_by: next.group_by ?? [] })
+  }
+
   return (
     <Box px="md" py="xs" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)', background: 'var(--mantine-color-white)', flexShrink: 0 }}>
       <Group gap="sm" wrap="nowrap" align="center">
@@ -68,7 +75,7 @@ export default function FilterBar({
           <MultiSelect
             data={periodSelectData}
             value={spec.periods ?? []}
-            onChange={v => onChange({ ...spec, periods: v.length ? v : undefined })}
+            onChange={v => dispatch('setFilter', { departments: spec.departments, categories: spec.categories, periods: v.length ? v : undefined })}
             placeholder={`All ${PERIOD_TYPE_LABELS[periodType].toLowerCase()}s`}
             size="xs" clearable searchable
             style={{ minWidth: 120, maxWidth: 180 }}
@@ -79,7 +86,7 @@ export default function FilterBar({
         <MultiSelect
           data={depts}
           value={spec.departments ?? []}
-          onChange={v => onChange({ ...spec, departments: v.length ? v : undefined })}
+          onChange={v => dispatch('setFilter', { departments: v.length ? v : undefined, categories: spec.categories, periods: spec.periods })}
           placeholder="All departments"
           size="xs" clearable searchable
           style={{ minWidth: 150, maxWidth: 220 }}
@@ -89,7 +96,7 @@ export default function FilterBar({
         <MultiSelect
           data={cats}
           value={spec.categories ?? []}
-          onChange={v => onChange({ ...spec, categories: v.length ? v : undefined })}
+          onChange={v => dispatch('setFilter', { departments: spec.departments, categories: v.length ? v : undefined, periods: spec.periods })}
           placeholder="All categories"
           size="xs" clearable searchable
           style={{ minWidth: 150, maxWidth: 220 }}
@@ -106,11 +113,11 @@ export default function FilterBar({
                 <span style={{ opacity: 0.5, fontSize: 10, marginRight: 2 }}>{idx + 1}</span>
               )}
               {ALL_GROUP_OPTS.find(o => o.value === field)?.label}
-              <button style={xBtnStyle} onClick={() => onChange(toggleGroupBy(spec, field))}>×</button>
+              <button style={xBtnStyle} onClick={() => handleToggleGroupBy(field)}>×</button>
             </span>
           ))}
           {ALL_GROUP_OPTS.filter(o => !groupBy.includes(o.value)).map(o => (
-            <SegmentButton key={o.value} active={false} onClick={() => onChange(toggleGroupBy(spec, o.value))}>
+            <SegmentButton key={o.value} active={false} onClick={() => handleToggleGroupBy(o.value)}>
               + {o.label}
             </SegmentButton>
           ))}
@@ -134,7 +141,7 @@ export default function FilterBar({
         {!empty && (
           <>
             <Divider orientation="vertical" h={20} />
-            <Button size="xs" variant="subtle" color="gray" leftSection={<X size={11} />} onClick={() => onChange({})}>
+            <Button size="xs" variant="subtle" color="gray" leftSection={<X size={11} />} onClick={() => dispatch('resetView')}>
               Clear
             </Button>
           </>

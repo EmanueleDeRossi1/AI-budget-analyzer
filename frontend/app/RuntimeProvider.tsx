@@ -6,32 +6,21 @@ import {
   useLocalRuntime,
   type ChatModelAdapter,
 } from '@assistant-ui/react'
-import { FilterSpec, HighlightSpec } from '@/lib/filterSpec'
 
 export function RuntimeProvider({
   children,
   scenarioId,
-  onFilterSpec,
-  onHighlightSpec,
-  onResetView,
+  dispatch,
 }: {
   children: React.ReactNode
   scenarioId: number | null
-  onFilterSpec?: (spec: FilterSpec) => void
-  onHighlightSpec?: (spec: HighlightSpec) => void
-  onResetView?: () => void
+  dispatch: (operationId: string, params?: any) => any
 }) {
   const scenarioIdRef = useRef(scenarioId)
   scenarioIdRef.current = scenarioId
 
-  const onFilterSpecRef = useRef(onFilterSpec)
-  onFilterSpecRef.current = onFilterSpec
-
-  const onHighlightSpecRef = useRef(onHighlightSpec)
-  onHighlightSpecRef.current = onHighlightSpec
-
-  const onResetViewRef = useRef(onResetView)
-  onResetViewRef.current = onResetView
+  const dispatchRef = useRef(dispatch)
+  dispatchRef.current = dispatch
 
   const adapter = useMemo<ChatModelAdapter>(
     () => ({
@@ -76,24 +65,28 @@ export function RuntimeProvider({
             try {
               const data = JSON.parse(raw)
 
+              // All view operations come through as {operation: {id, params}}
+              if (data.operation) {
+                dispatchRef.current(data.operation.id, data.operation.params ?? {})
+                continue
+              }
+
+              // Backward compat: handle legacy event shapes during migration
               if (data.filter_spec) {
-                onFilterSpecRef.current?.(data.filter_spec as FilterSpec)
+                dispatchRef.current('updateView', data.filter_spec)
                 continue
               }
-
               if (data.highlight_spec) {
-                onHighlightSpecRef.current?.(data.highlight_spec as HighlightSpec)
+                dispatchRef.current('highlight', data.highlight_spec)
                 continue
               }
-
               if (data.reset_view !== undefined) {
-                onResetViewRef.current?.()
+                dispatchRef.current('resetView')
                 continue
               }
 
               if (data.status) {
                 status = data.status
-                // Show status only while no real text has started yet
                 if (!text) {
                   yield { content: [{ type: 'text' as const, text: `_${status}_` }] }
                 }

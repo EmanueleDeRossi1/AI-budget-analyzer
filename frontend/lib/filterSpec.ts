@@ -27,6 +27,7 @@ export type FilterSpec = {
   sort_by?: 'variance' | 'budget' | 'actual'
   sort_dir?: 'asc' | 'desc'
   period_type?: PeriodType    // passed through for correct period display + sort order
+  columns?: string[]          // active derived column IDs from the operations registry
 }
 
 export type FilteredRow = {
@@ -202,7 +203,8 @@ export function isEmptySpec(spec: FilterSpec): boolean {
     !spec.categories?.length &&
     !spec.periods?.length &&
     !spec.group_by?.length &&
-    !spec.sort_by
+    !spec.sort_by &&
+    !spec.columns?.length
   )
 }
 
