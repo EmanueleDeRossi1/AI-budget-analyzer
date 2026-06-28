@@ -33,7 +33,7 @@ async def get_budget_data(ctx: RunContextWrapper[AgentContext]) -> str:
         items = list(BudgetLineItem.objects.filter(scenario_id=ctx.context.scenario_id))
         result = []
         for item in items:
-            variance = item.actual_amount - item.budget_amount
+            variance = item.budget_amount - item.actual_amount
             pct = (variance / item.budget_amount * 100) if item.budget_amount else 0
             result.append({
                 "period": item.period,
@@ -43,7 +43,7 @@ async def get_budget_data(ctx: RunContextWrapper[AgentContext]) -> str:
                 "actual": float(item.actual_amount),
                 "variance": float(variance),
                 "variance_pct": round(float(pct), 1),
-                "over_budget": variance > 0,
+                "over_budget": variance < 0,
             })
         return result
 
@@ -68,6 +68,8 @@ async def aggregate(
     operation:
       "sum"           — total of field across matching rows
       "count"         — number of matching rows
+      "min"           — smallest value of field across matching rows
+      "max"           — largest value of field across matching rows
       "pct_of_budget" — actual / budget * 100 (burn rate)
       "pct_of_total"  — group actual / total scenario actual * 100
 
@@ -98,8 +100,10 @@ async def aggregate(
             items = [i for i in items if i.actual_amount > i.budget_amount]
 
         def field_val(item):
-            if field == "budget":   return float(item.budget_amount)
-            if field == "variance": return float(item.actual_amount - item.budget_amount)
+            if field == "budget":
+                return float(item.budget_amount)
+            if field == "variance":
+                return float(item.budget_amount - item.actual_amount)
             return float(item.actual_amount)
 
         total_actual = sum(float(i.actual_amount) for i in all_items)
@@ -109,6 +113,12 @@ async def aggregate(
                 return round(sum(field_val(i) for i in rows), 2)
             if operation == "count":
                 return len(rows)
+            if operation == "min":
+                vals = [field_val(i) for i in rows]
+                return round(min(vals), 2) if vals else None
+            if operation == "max":
+                vals = [field_val(i) for i in rows]
+                return round(max(vals), 2) if vals else None
             if operation == "pct_of_budget":
                 b = sum(float(i.budget_amount) for i in rows)
                 a = sum(float(i.actual_amount) for i in rows)
@@ -131,7 +141,7 @@ async def aggregate(
 
 
 @function_tool
-def set_filter(
+def update_view(
     ctx: RunContextWrapper[AgentContext],
     departments: list[str] = [],
     categories: list[str] = [],
@@ -139,32 +149,59 @@ def set_filter(
     group_by: list[str] = [],
     sort_by: str = "variance",
     sort_dir: str = "desc",
+    highlight_departments: list[str] = [],
+    highlight_categories: list[str] = [],
+    highlight_periods: list[str] = [],
 ) -> str:
     """
-    Update the budget table view. Call after get_budget_data, using only
-    exact values that appear in the returned data.
+    Update the budget table: filter, group, sort, and highlight in one call.
+    Use only exact values from get_budget_data.
 
-    departments: filter to these departments (empty = all)
-    categories: filter to these categories (empty = all)
-    periods: filter to these periods (empty = all)
-    group_by: ordered list of dimensions, e.g. ["period", "department"] or ["department", "category"]
-              valid values: "period", "department", "category"
-    sort_by: "variance" | "budget" | "actual"
-    sort_dir: "desc" | "asc"
+    Filter (empty = show all):
+      departments, categories, periods
+
+    Layout:
+      group_by: e.g. ["department"] or ["period", "category"]
+               valid values: "period", "department", "category"
+      sort_by: "variance" | "budget" | "actual"
+      sort_dir: "desc" | "asc"
+
+    Highlight (draw attention without hiding other rows):
+      highlight_departments, highlight_categories, highlight_periods
     """
-    spec: dict = {"sort_by": sort_by, "sort_dir": sort_dir}
+    filter_spec: dict = {"sort_by": sort_by, "sort_dir": sort_dir}
     if departments:
-        spec["departments"] = departments
+        filter_spec["departments"] = departments
     if categories:
-        spec["categories"] = categories
+        filter_spec["categories"] = categories
     if periods:
-        spec["periods"] = periods
+        filter_spec["periods"] = periods
     valid_group = [g for g in group_by if g in ("period", "department", "category")]
     if valid_group:
-        spec["group_by"] = valid_group
+        filter_spec["group_by"] = valid_group
 
-    ctx.context.emit("filter_spec", spec)
-    return "Filter applied."
+    ctx.context.emit("filter_spec", filter_spec)
+
+    highlight_spec: dict = {}
+    if highlight_departments:
+        highlight_spec["departments"] = highlight_departments
+    if highlight_categories:
+        highlight_spec["categories"] = highlight_categories
+    if highlight_periods:
+        highlight_spec["periods"] = highlight_periods
+    if highlight_spec:
+        ctx.context.emit("highlight_spec", highlight_spec)
+
+    return "View updated."
+
+
+@function_tool
+def reset_view(ctx: RunContextWrapper[AgentContext]) -> str:
+    """
+    Clear all filters, groupings, and highlights, returning the table to its default flat view.
+    """
+    ctx.context.emit("reset_view", {})
+    return "View reset."
 
 
 # ── Agent ─────────────────────────────────────────────────────────────────────
@@ -178,9 +215,15 @@ agent = Agent(
     instructions=(
         "You are a finance analyst. Query tools fetch and compute data; command tools update the UI. "
         "Run query tools before command tools.\n\n"
+        "Variance = Budget − Actual. Positive variance means under-budget (favorable); "
+        "negative means over-budget (unfavorable).\n\n"
         "Use only exact period/department/category values from the data, and use aggregate for all arithmetic.\n\n"
+        "After answering, call update_view to highlight the answer. "
+        "Set ALL highlight fields that narrow to the exact row(s): e.g. for 'Sales – Football in Q4' "
+        "set highlight_departments=['Sales'], highlight_categories=['Football'], highlight_periods=['Q4']. "
+        "Only omit a highlight field when the answer spans all values in that dimension.\n\n"
         "Reply in 1-2 sentences. Never repeat what the table shows. Confirm what you applied; "
         "add a second sentence only if something is notable."
     ),
-    tools=[get_budget_data, aggregate, set_filter],
+    tools=[get_budget_data, aggregate, update_view, reset_view],
 )
