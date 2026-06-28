@@ -60,7 +60,7 @@ export function aggregateByPeriod(
     })
   }
 
-  const sorted = sortPeriodValues([...groups.keys()], periodType)
+  const sorted = sortPeriodValues(Array.from(groups.keys()), periodType)
   const rows: PeriodChartRow[] = sorted.map(period => {
     const { budget, actual } = groups.get(period)!
     const variance = computeVariance(budget, actual)

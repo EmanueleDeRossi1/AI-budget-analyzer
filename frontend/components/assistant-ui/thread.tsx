@@ -5,6 +5,7 @@ import {
   AuiIf,
   BranchPickerPrimitive,
   ComposerPrimitive,
+  MessagePartPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
   useAuiState,
@@ -171,9 +172,13 @@ const EditComposer: FC = () => {
 // ── Assistant message ─────────────────────────────────────────────────────────
 
 // MarkdownText must be rendered inside a part context provided by MessagePrimitive.Parts
-const TextPart: FC = () => <MarkdownText />
-const IndicatorPart: FC = () => (
-  <span className="animate-pulse font-sans text-gray-400">●</span>
+const TextPart: FC = () => (
+  <>
+    <MarkdownText />
+    <MessagePartPrimitive.InProgress>
+      <span className="animate-pulse font-sans text-gray-400">●</span>
+    </MessagePartPrimitive.InProgress>
+  </>
 )
 
 const AssistantMessage: FC = () => (
@@ -181,7 +186,6 @@ const AssistantMessage: FC = () => (
     <div className="leading-relaxed text-gray-800">
       <MessagePrimitive.Parts components={{
         Text: TextPart,
-        Indicator: IndicatorPart,
         tools: { by_name: toolRegistry, Fallback: GenericToolCard },
       }} />
     </div>

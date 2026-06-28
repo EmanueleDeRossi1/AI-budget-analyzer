@@ -96,7 +96,7 @@ function sortRows(
   if (sortBy === 'period') {
     const getValue = (r: FilteredRow) =>
       r.period ?? (r.groupField === 'period' ? r.groupValue : undefined) ?? ''
-    const unique = [...new Set(rows.map(getValue))]
+    const unique = Array.from(new Set(rows.map(getValue)))
     const ordered = sortPeriodValues(unique, periodType ?? 'year')
     const orderMap = new Map(ordered.map((v, i) => [v, i]))
     return [...rows].sort((a, b) =>
