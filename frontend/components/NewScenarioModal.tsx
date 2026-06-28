@@ -8,7 +8,7 @@ import { api, BudgetScenario } from '@/lib/api'
 import { PeriodType, PERIOD_TYPE_LABELS, periodOptions } from '@/lib/periods'
 import SegmentButton from '@/components/SegmentButton'
 
-type Template = 'blank' | 'demo' | 'csv' | 'copy'
+type Template = 'blank' | 'demo'
 
 function buildDemoItems(periodType: PeriodType) {
   const opts = periodOptions(periodType)
@@ -24,10 +24,8 @@ function buildDemoItems(periodType: PeriodType) {
 }
 
 const TEMPLATES: { key: Template; label: string; desc: string }[] = [
-  { key: 'blank', label: 'Blank',        desc: 'Start from scratch' },
-  { key: 'demo',  label: 'Demo Data',    desc: '5 departments, seeded actuals' },
-  { key: 'csv',   label: 'Import CSV',   desc: 'Upload a spreadsheet' },
-  { key: 'copy',  label: 'Copy Scenario',desc: 'Duplicate an existing one' },
+  { key: 'blank', label: 'Blank',     desc: 'Start from scratch' },
+  { key: 'demo',  label: 'Demo Data', desc: '5 departments, seeded actuals' },
 ]
 
 export default function NewScenarioModal({
@@ -74,6 +72,7 @@ export default function NewScenarioModal({
       }
       size="md"
       radius="lg"
+      centered
     >
       <Stack gap="md">
         <SimpleGrid cols={2} spacing="sm">
@@ -124,11 +123,6 @@ export default function NewScenarioModal({
               </Paper>
             ))}
           </SimpleGrid>
-          {(template === 'csv' || template === 'copy') && (
-            <Text size="xs" c="dimmed" mt="xs">
-              {template === 'csv' ? 'CSV import' : 'Copy scenario'} coming soon — will start blank.
-            </Text>
-          )}
         </Box>
 
         <Group justify="flex-end" gap="sm" pt="xs" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
