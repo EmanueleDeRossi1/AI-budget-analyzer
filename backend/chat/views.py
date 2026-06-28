@@ -28,13 +28,11 @@ def chat(request):
     def push(payload: dict) -> None:
         q.put(f"data: {json.dumps(payload)}\n\n")
 
-    # emit(event_type, payload) is how command tools push declarative UI specs
-    # back to the frontend. The event_type becomes the SSE payload key, so the
-    # frontend can dispatch on it directly. Adding a new command tool only
-    # requires handling the new event_type in the frontend — nothing changes here.
+    # All events share the same shape: { type, ...payload }
+    # Frontend routes on `type` — adding a new tool never requires changing this.
     context = AgentContext(
         scenario_id=scenario_id,
-        emit=lambda event_type, payload: push({event_type: payload}),
+        emit=lambda op_id, params: push({"type": "operation", "id": op_id, "params": params}),
     )
 
     async def _run():
@@ -43,21 +41,38 @@ def chat(request):
             async for event in result.stream_events():
 
                 if event.type == "run_item_stream_event":
-                    # Show a loading status while the DB query is in flight.
-                    if getattr(event.item, "type", None) == "tool_call_item":
-                        if "get_budget_data" in (getattr(event.item, "name", "") or ""):
-                            push({"status": "Fetching budget data…"})
+                    item = event.item
+                    item_type = getattr(item, "type", None)
+
+                    if item_type == "tool_call_item":
+                        raw = getattr(item, "raw_item", None)
+                        # Only surface function calls (not file-search, computer-use, etc.)
+                        if raw and getattr(raw, "type", None) == "function_call":
+                            push({
+                                "type": "tool_call",
+                                "id": raw.call_id,
+                                "name": raw.name,
+                                "args": raw.arguments,  # JSON string
+                            })
+
+                    elif item_type == "tool_call_output_item":
+                        raw = getattr(item, "raw_item", None)
+                        call_id = raw.get("call_id") if isinstance(raw, dict) else getattr(raw, "call_id", None)
+                        if call_id:
+                            push({
+                                "type": "tool_result",
+                                "id": call_id,
+                                "result": str(item.output),
+                            })
 
                 elif event.type == "raw_response_event":
-                    # The Responses API streams text and tool-argument tokens through
-                    # the same event type. We only want text output deltas.
                     if getattr(event.data, "type", "") == "response.output_text.delta":
                         delta = getattr(event.data, "delta", None)
                         if isinstance(delta, str) and delta:
-                            push({"text": delta})
+                            push({"type": "text", "delta": delta})
 
         except Exception as e:
-            push({"error": str(e)})
+            push({"type": "error", "message": str(e)})
         finally:
             q.put(None)
 

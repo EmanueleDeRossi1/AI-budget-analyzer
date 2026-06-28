@@ -5,7 +5,23 @@ import {
   AssistantRuntimeProvider,
   useLocalRuntime,
   type ChatModelAdapter,
+  type ToolCallMessagePart,
+  type TextMessagePart,
 } from '@assistant-ui/react'
+
+// Content parts that accumulate over the stream lifetime of one assistant turn.
+type ContentState = {
+  text: string
+  toolCalls: Map<string, ToolCallMessagePart>
+}
+
+function buildContent({ text, toolCalls }: ContentState): (TextMessagePart | ToolCallMessagePart)[] {
+  const parts: (TextMessagePart | ToolCallMessagePart)[] = [
+    ...Array.from(toolCalls.values()),
+  ]
+  if (text) parts.push({ type: 'text', text })
+  return parts
+}
 
 export function RuntimeProvider({
   children,
@@ -47,9 +63,8 @@ export function RuntimeProvider({
 
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
-        let text = ''
-        let status = ''
         let buffer = ''
+        const state: ContentState = { text: '', toolCalls: new Map() }
 
         while (true) {
           const { done, value } = await reader.read()
@@ -63,39 +78,42 @@ export function RuntimeProvider({
             const raw = line.slice(6).trim()
             if (raw === '[DONE]') return
             try {
-              const data = JSON.parse(raw)
+              const ev = JSON.parse(raw)
 
-              // All view operations come through as {operation: {id, params}}
-              if (data.operation) {
-                dispatchRef.current(data.operation.id, data.operation.params ?? {})
-                continue
-              }
+              switch (ev.type) {
+                case 'text':
+                  state.text += ev.delta
+                  yield { content: buildContent(state) }
+                  break
 
-              // Backward compat: handle legacy event shapes during migration
-              if (data.filter_spec) {
-                dispatchRef.current('updateView', data.filter_spec)
-                continue
-              }
-              if (data.highlight_spec) {
-                dispatchRef.current('highlight', data.highlight_spec)
-                continue
-              }
-              if (data.reset_view !== undefined) {
-                dispatchRef.current('resetView')
-                continue
-              }
+                case 'tool_call':
+                  state.toolCalls.set(ev.id, {
+                    type: 'tool-call',
+                    toolCallId: ev.id,
+                    toolName: ev.name,
+                    args: JSON.parse(ev.args ?? '{}'),
+                    argsText: ev.args ?? '',
+                  })
+                  yield { content: buildContent(state) }
+                  break
 
-              if (data.status) {
-                status = data.status
-                if (!text) {
-                  yield { content: [{ type: 'text' as const, text: `_${status}_` }] }
-                }
-                continue
-              }
+                case 'tool_result':
+                  const existing = state.toolCalls.get(ev.id)
+                  if (existing) {
+                    state.toolCalls.set(ev.id, { ...existing, result: ev.result })
+                    yield { content: buildContent(state) }
+                  }
+                  break
 
-              if (data.text) {
-                text += data.text
-                yield { content: [{ type: 'text' as const, text }] }
+                case 'operation':
+                  // Side effect: update the budget table. Not a UI content part.
+                  dispatchRef.current(ev.id, ev.params ?? {})
+                  break
+
+                case 'error':
+                  state.text += `\n\n_Error: ${ev.message}_`
+                  yield { content: buildContent(state) }
+                  break
               }
             } catch {}
           }

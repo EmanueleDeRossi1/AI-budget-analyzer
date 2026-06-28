@@ -18,7 +18,7 @@ class DimensionFilter(BaseModel):
 @dataclass
 class AgentContext:
     scenario_id: int
-    emit: Callable[[str, dict], None]   # (event_type, payload)
+    emit: Callable[[str, dict], None]   # (op_id, params)
 
 
 # ── Tools ─────────────────────────────────────────────────────────────────────
@@ -121,17 +121,26 @@ def display_budget(
     columns: toggle computed columns, e.g. ["pctOfTotal", "burnRate"]
              valid values: "pctOfTotal", "burnRate", "variancePct", "runningTotal", "rank"
     """
-    params = {
-        "sort_by": sort_by,
-        "sort_dir": sort_dir,
-        **{k: v for k, v in {
-            "filters": filters.model_dump(exclude_defaults=True),
-            "highlights": highlights.model_dump(exclude_defaults=True),
-            "group_by": group_by,
-            "columns": columns,
-        }.items() if v},
-    }
-    ctx.context.emit("operation", {"id": "updateView", "params": params})
+    params: dict = {"sort_by": sort_by, "sort_dir": sort_dir}
+    # Flatten filters → plural keys expected by the frontend registry
+    if filters.period:
+        params["periods"] = filters.period
+    if filters.department:
+        params["departments"] = filters.department
+    if filters.category:
+        params["categories"] = filters.category
+    # Flatten highlights → highlight_* keys
+    if highlights.period:
+        params["highlight_periods"] = highlights.period
+    if highlights.department:
+        params["highlight_departments"] = highlights.department
+    if highlights.category:
+        params["highlight_categories"] = highlights.category
+    if group_by:
+        params["group_by"] = group_by
+    if columns:
+        params["columns"] = columns
+    ctx.context.emit("updateView", params)
     return "View updated."
 
 
@@ -141,7 +150,7 @@ def reset_display(ctx: RunContextWrapper[AgentContext]) -> str:
     Clear all filters, groupings, highlights, and computed columns,
     returning the table to its default flat view.
     """
-    ctx.context.emit("operation", {"id": "resetView", "params": {}})
+    ctx.context.emit("resetView", {})
     return "View reset."
 
 

@@ -23,6 +23,7 @@ import {
 import { type FC } from 'react'
 import { cn } from '@/lib/utils'
 import { MarkdownText } from './markdown-text'
+import { toolRegistry, GenericToolCard } from '@/lib/toolRegistry'
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 
@@ -160,7 +161,11 @@ const IndicatorPart: FC = () => (
 const AssistantMessage: FC = () => (
   <MessagePrimitive.Root className="group px-2">
     <div className="leading-relaxed text-gray-800">
-      <MessagePrimitive.Parts components={{ Text: TextPart, Indicator: IndicatorPart }} />
+      <MessagePrimitive.Parts components={{
+        Text: TextPart,
+        Indicator: IndicatorPart,
+        tools: { by_name: toolRegistry, Fallback: GenericToolCard },
+      }} />
     </div>
 
     <div className="mt-1 flex items-center gap-1">
