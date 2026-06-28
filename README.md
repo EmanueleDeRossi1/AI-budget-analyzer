@@ -1,6 +1,6 @@
-# BudgetAI
+# 💰 AI Budget Analyzer
 
-A full-stack workspace for reviewing budget scenarios with an AI assistant. Create scenarios, manage line items, and ask natural-language questions — the assistant queries the real data and updates the table live.
+A full-stack workspace for reviewing budget scenarios with an AI assistant. Create scenarios, manage line items, and ask natural-language questions: the assistant queries the real data and updates the table live.
 
 ## Quick start
 

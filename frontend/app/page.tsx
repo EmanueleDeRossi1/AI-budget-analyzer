@@ -148,7 +148,7 @@ export default function Home() {
           {/* Header */}
           <Box style={{ flexShrink: 0, background: 'var(--mantine-color-white)', height: 56 }}>
             <Group h="100%" px="md" gap="md">
-              <Text fw={700} size="md" style={{ letterSpacing: -0.5 }}>◈ BudgetAI</Text>
+              <Text fw={700} size="md" style={{ letterSpacing: -0.5 }}>💰 AI Budget Analyzer</Text>
               <ScenarioCombobox
                 scenarios={scenarios}
                 selectedId={selectedId}
