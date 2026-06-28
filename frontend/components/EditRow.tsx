@@ -5,6 +5,7 @@ import { Table, TextInput, ActionIcon, Group, Select } from '@mantine/core'
 import { Check, X } from 'lucide-react'
 import { BudgetLineItem } from '@/lib/api'
 import { PeriodType, periodOptions } from '@/lib/periods'
+import { filterNumericInput } from '@/lib/utils'
 import SuggestInput from './SuggestInput'
 
 export default function EditRow({
@@ -76,7 +77,7 @@ export default function EditRow({
           styles={{ input: { textAlign: 'right' } }}
           placeholder="0"
           value={values.budget_amount ?? ''}
-          onChange={e => onChange({ ...values, budget_amount: e.target.value })}
+          onChange={e => onChange({ ...values, budget_amount: filterNumericInput(e.target.value) })}
           onKeyDown={e => { if (e.key === 'Enter') actualRef.current?.focus() }}
         />
       </Table.Td>
@@ -86,7 +87,7 @@ export default function EditRow({
           styles={{ input: { textAlign: 'right' } }}
           placeholder="0"
           value={values.actual_amount ?? ''}
-          onChange={e => onChange({ ...values, actual_amount: e.target.value })}
+          onChange={e => onChange({ ...values, actual_amount: filterNumericInput(e.target.value) })}
           onKeyDown={e => { if (e.key === 'Enter') notesRef.current?.focus() }}
         />
       </Table.Td>

@@ -7,6 +7,7 @@ import {
 import { Plus } from 'lucide-react'
 import { api, BudgetScenario, BudgetLineItem } from '@/lib/api'
 import { FilterSpec, applyFilterSpec } from '@/lib/filterSpec'
+import { normalizeAmount } from '@/lib/utils'
 import { PeriodType } from '@/lib/periods'
 import { useOperations } from '@/lib/operations'
 import { RuntimeProvider } from './RuntimeProvider'
@@ -67,7 +68,12 @@ export default function Home() {
 
   const saveNewRow = async () => {
     if (!selectedId) return
-    await api.createLineItem({ ...newRow, scenario: selectedId })
+    const normalized = {
+      ...newRow,
+      budget_amount: normalizeAmount(newRow.budget_amount ?? ''),
+      actual_amount: normalizeAmount(newRow.actual_amount ?? ''),
+    }
+    await api.createLineItem({ ...normalized, scenario: selectedId })
     setAddingRow(false)
     setNewRow({})
     refresh()
