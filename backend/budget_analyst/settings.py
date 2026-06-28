@@ -22,7 +22,7 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = "budget_analyst.urls"
-WSGI_APPLICATION = "budget_analyst.wsgi.application"
+ASGI_APPLICATION = "budget_analyst.asgi.application"
 
 DATABASES = {
     "default": dj_database_url.config(

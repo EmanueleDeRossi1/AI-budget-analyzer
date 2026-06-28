@@ -4,3 +4,4 @@ django-cors-headers==4.4.0
 psycopg2-binary==2.9.9
 dj-database-url==2.2.0
 openai-agents==0.0.19
+uvicorn==0.30.6

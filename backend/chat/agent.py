@@ -1,6 +1,5 @@
 import json
 from dataclasses import dataclass
-from typing import Callable
 from agents import Agent, function_tool, RunContextWrapper
 from asgiref.sync import sync_to_async
 from budget.models import BudgetLineItem
@@ -18,7 +17,6 @@ class DimensionFilter(BaseModel):
 @dataclass
 class AgentContext:
     scenario_id: int
-    emit: Callable[[str, dict], None]   # (op_id, params)
 
 
 # ── Tools ─────────────────────────────────────────────────────────────────────
@@ -117,18 +115,6 @@ def display_budget(
     columns: toggle computed columns, e.g. ["pctOfTotal", "burnRate"]
              valid values: "pctOfTotal", "burnRate", "variancePct", "runningTotal", "rank"
     """
-    params: dict = {"sort_by": sort_by, "sort_dir": sort_dir}
-    if filters.period:
-        params["periods"] = filters.period
-    if filters.department:
-        params["departments"] = filters.department
-    if filters.category:
-        params["categories"] = filters.category
-    if group_by:
-        params["group_by"] = group_by
-    if columns:
-        params["columns"] = columns
-    ctx.context.emit("updateView", params)
     return "View updated."
 
 
@@ -138,7 +124,6 @@ def reset_display(ctx: RunContextWrapper[AgentContext]) -> str:
     Clear all filters, groupings, and computed columns,
     returning the table to its default flat view.
     """
-    ctx.context.emit("resetView", {})
     return "View reset."
 
 

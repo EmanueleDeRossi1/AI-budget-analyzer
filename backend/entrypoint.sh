@@ -7,4 +7,4 @@ if not BudgetScenario.objects.exists():
     from django.core.management import call_command
     call_command('loaddata', 'budget/fixtures/initial_data.json')
 "
-exec python manage.py runserver 0.0.0.0:8000
+exec uvicorn budget_analyst.asgi:application --host 0.0.0.0 --port 8000

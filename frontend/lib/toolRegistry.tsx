@@ -39,7 +39,7 @@ export const GenericToolCard: FC<ToolCallMessagePartProps> = ({ toolName, status
 // ── Registry ──────────────────────────────────────────────────────────────────
 
 export const toolRegistry: Record<string, FC<ToolCallMessagePartProps>> = {
-  query_budget:   makeToolCard(<DatabaseIcon className="size-3.5" />, 'Querying budget data…', 'Budget data loaded'),
-  display_budget: makeToolCard(<LayoutIcon className="size-3.5" />,   'Updating table view…',  'Table view updated'),
-  reset_display:  makeToolCard(<RotateCcwIcon className="size-3.5" />, 'Resetting view…',      'View reset'),
+  query_budget:   makeToolCard(<DatabaseIcon className="size-3.5" />, 'Fetching budget data…', 'Budget data loaded'),
+  display_budget: makeToolCard(<LayoutIcon className="size-3.5" />,   'Updating table…',        'Table updated'),
+  reset_display:  makeToolCard(<RotateCcwIcon className="size-3.5" />, 'Resetting view…',       'View reset'),
 }
