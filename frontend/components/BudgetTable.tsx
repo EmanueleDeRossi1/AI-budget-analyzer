@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import {
   Group, Text, Badge, ActionIcon, Table, Select,
 } from '@mantine/core'
-import { Trash2, CopyPlus } from 'lucide-react'
+import { Trash2, CopyPlus, ChevronRight, ChevronDown } from 'lucide-react'
 import { BudgetLineItem } from '@/lib/api'
 import { FilterSpec, FilteredRow, GroupByField } from '@/lib/filterSpec'
 import { PeriodType, PERIOD_TYPE_LABELS, periodLabel, periodOptions } from '@/lib/periods'
@@ -37,17 +37,33 @@ function VariancePct({ pct }: { pct: number }) {
 
 // ── Group header row ─────────────────────────────────────────────────────────
 
-function GroupHeaderRow({ row, periodType, activeColumns, allRowsContext }: { row: FilteredRow; periodType: PeriodType; activeColumns: DerivedColumnDef[]; allRowsContext: { budget: number; actual: number }[] }) {
-  const paddingLeft = 8 + row.level * 16
+function GroupHeaderRow({
+  row, periodType, activeColumns, allRowsContext, highlighted, collapsed, onToggle,
+}: {
+  row: FilteredRow
+  periodType: PeriodType
+  activeColumns: DerivedColumnDef[]
+  allRowsContext: { budget: number; actual: number }[]
+  highlighted: boolean
+  collapsed: boolean
+  onToggle: () => void
+}) {
+  const paddingLeft = 4 + row.level * 16
   const bg = row.level === 0 ? 'var(--mantine-color-gray-1)' : 'var(--mantine-color-gray-0)'
   const displayValue = row.groupField === 'period'
     ? periodLabel(row.groupValue ?? '', periodType)
     : row.groupValue
 
   return (
-    <Table.Tr style={{ background: bg }}>
+    <Table.Tr style={{
+      background: bg,
+      ...(highlighted ? { outline: '2px solid var(--mantine-color-blue-4)', outlineOffset: '-2px' } : {}),
+    }}>
       <Table.Td colSpan={3} style={{ paddingLeft, paddingTop: 8, paddingBottom: 8 }}>
-        <Group gap={6}>
+        <Group gap={4}>
+          <ActionIcon variant="subtle" size="xs" color="gray" onClick={onToggle} style={{ width: 20, height: 20 }}>
+            {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+          </ActionIcon>
           <Text size="sm" fw={row.level === 0 ? 700 : 600}>{displayValue}</Text>
           <Text size="xs" c="dimmed">({row.item_count} {row.item_count === 1 ? 'item' : 'items'})</Text>
         </Group>
@@ -110,6 +126,21 @@ export default function BudgetTable({
 
   const uniqueDepts = Array.from(new Set(lineItems.map(i => i.department)))
   const uniqueCats = Array.from(new Set(lineItems.map(i => i.category)))
+
+  // ── Collapsed groups state (collapsed by default) ────────────────────
+
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+
+  const toggleCollapse = useCallback((groupKey: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(groupKey)) next.delete(groupKey)
+      else next.add(groupKey)
+      return next
+    })
+  }, [])
+
+  const isGrouped = (activeSpec.group_by ?? []).length > 0
 
   // ── Derived columns ──────────────────────────────────────────────────────
 
@@ -227,18 +258,36 @@ export default function BudgetTable({
     })
   }
 
-  // ── Row rendering ────────────────────────────────────────────────────────
+  // ── Highlight logic ──────────────────────────────────────────────────────
 
-  function isHighlighted(item: BudgetLineItem): boolean {
+  function isGroupHighlighted(row: FilteredRow): boolean {
+    if (!highlightSpec || !row.groupField || !row.groupValue) return false
+    // Build a partial match object from the group row's known dimensions
+    const match: { department: string; category: string; period: string } = {
+      department: (row.department as string) ?? '',
+      category: (row.category as string) ?? '',
+      period: (row.period as string) ?? '',
+    }
+    // Fill in the group dimension
+    match[row.groupField] = row.groupValue
+    return matchesHighlight(match, highlightSpec)
+  }
+
+  function isLeafHighlighted(item: BudgetLineItem): boolean {
     if (!highlightSpec) return false
+    // When grouped, highlights go on group rows, not leaves
+    if (isGrouped) return false
     return matchesHighlight(
       { department: item.department, category: item.category, period: item.period ?? '' },
       highlightSpec,
     )
   }
 
-  function renderLeafRow(row: FilteredRow, item: BudgetLineItem, isGrouped: boolean) {
-    const highlighted = isHighlighted(item)
+  // ── Row rendering ────────────────────────────────────────────────────────
+
+  function renderLeafRow(row: FilteredRow, item: BudgetLineItem) {
+    const highlighted = isLeafHighlighted(item)
+    const paddingLeft = isGrouped ? 8 + row.level * 16 : undefined
     const actions = (
       <Group gap={4} wrap="nowrap" style={{ opacity: 0 }} className="row-actions">
         <ActionIcon variant="subtle" size="sm" color="gray" onClick={() => onDuplicateItem(item)} title="Duplicate">
@@ -250,45 +299,11 @@ export default function BudgetTable({
       </Group>
     )
 
-    if (isGrouped) {
-      const groupBy = activeSpec.group_by ?? []
-      const allDims: GroupByField[] = ['period', 'department', 'category']
-      const remaining = allDims.filter(d => !groupBy.includes(d))
-      const label = remaining
-        .map(d => {
-          const v = row[d] ?? ''
-          return d === 'period' ? periodLabel(v, activePeriodType) : v
-        })
-        .filter(Boolean)
-        .join(' · ') || '—'
-      const paddingLeft = 8 + row.level * 16
-
-      return (
-        <Table.Tr key={row.key} style={highlighted ? { outline: '2px solid var(--mantine-color-blue-4)', outlineOffset: '-2px' } : undefined}>
-          <Table.Td colSpan={3} style={{ paddingLeft, color: 'var(--mantine-color-gray-7)' }}>
-            <Text size="sm">{label}</Text>
-          </Table.Td>
-          <Table.Td style={{ textAlign: 'right' }}>
-            {cell(item, 'budget_amount', fmt(row.budget), 'right')}
-          </Table.Td>
-          <Table.Td style={{ textAlign: 'right' }}>
-            {cell(item, 'actual_amount', fmt(row.actual), 'right')}
-          </Table.Td>
-          <Table.Td style={{ textAlign: 'right' }}><VarianceBadge variance={row.variance} /></Table.Td>
-          {renderDerivedCells(row)}
-          <Table.Td c="dimmed" style={{ maxWidth: 160 }}>
-            {row.notes
-              ? cell(item, 'notes', <Text size="xs" truncate>{row.notes}</Text>)
-              : <VariancePct pct={row.variance_pct} />}
-          </Table.Td>
-          <Table.Td>{actions}</Table.Td>
-        </Table.Tr>
-      )
-    }
-
     return (
       <Table.Tr key={row.key} style={highlighted ? { outline: '2px solid var(--mantine-color-blue-4)', outlineOffset: '-2px' } : undefined}>
-        <Table.Td>{periodCell(item, row.period ? periodLabel(row.period, activePeriodType) : '—')}</Table.Td>
+        <Table.Td style={paddingLeft ? { paddingLeft } : undefined}>
+          {periodCell(item, row.period ? periodLabel(row.period, activePeriodType) : '—')}
+        </Table.Td>
         <Table.Td fw={500}>{suggestCell(item, 'department', row.department, uniqueDepts)}</Table.Td>
         <Table.Td>{suggestCell(item, 'category', row.category, uniqueCats)}</Table.Td>
         <Table.Td style={{ textAlign: 'right' }}>
@@ -309,36 +324,60 @@ export default function BudgetTable({
     )
   }
 
+  // Build a set of group keys whose children should be hidden
+  // For nested groups, collapsing a parent hides all descendants
+  const hiddenRows = useMemo(() => {
+    const hidden = new Set<string>()
+    let skipUntilLevel: number | null = null
+
+    for (const row of visibleRows) {
+      if (skipUntilLevel !== null) {
+        if (row.isGroupRow && row.level <= skipUntilLevel) {
+          skipUntilLevel = null // We've exited the collapsed group
+        } else {
+          hidden.add(row.key)
+          continue
+        }
+      }
+      if (row.isGroupRow && !expandedGroups.has(row.key)) {
+        skipUntilLevel = row.level
+      }
+    }
+    return hidden
+  }, [visibleRows, expandedGroups])
+
   function renderRow(row: FilteredRow) {
-    if (row.isGroupRow) return <GroupHeaderRow key={row.key} row={row} periodType={activePeriodType} activeColumns={activeColumns} allRowsContext={allRowsContext} />
+    if (hiddenRows.has(row.key)) return null
+
+    if (row.isGroupRow) {
+      return (
+        <GroupHeaderRow
+          key={row.key}
+          row={row}
+          periodType={activePeriodType}
+          activeColumns={activeColumns}
+          allRowsContext={allRowsContext}
+          highlighted={isGroupHighlighted(row)}
+          collapsed={!expandedGroups.has(row.key)}
+          onToggle={() => toggleCollapse(row.key)}
+        />
+      )
+    }
     const item = lineItems.find(i => String(i.id) === row.key)
     if (!item) return null
-    const isGrouped = (activeSpec.group_by ?? []).length > 0
-    return renderLeafRow(row, item, isGrouped)
+    return renderLeafRow(row, item)
   }
 
   // ── Table header ─────────────────────────────────────────────────────────
-
-  const groupBy = activeSpec.group_by ?? []
-  const dimHeader = groupBy.length === 0 ? (
-    <>
-      <Table.Th>{PERIOD_TYPE_LABELS[activePeriodType]}</Table.Th>
-      <Table.Th>Department</Table.Th>
-      <Table.Th>Category</Table.Th>
-    </>
-  ) : (
-    <Table.Th colSpan={3}>
-      {groupBy
-        .map(f => f === 'period' ? PERIOD_TYPE_LABELS[activePeriodType] : f.charAt(0).toUpperCase() + f.slice(1))
-        .join(' / ')}
-    </Table.Th>
-  )
+  // Always show all three dimension columns
 
   return (
     <Table striped highlightOnHover>
       <Table.Thead>
         <Table.Tr>
-          {dimHeader}
+          <Table.Th>{PERIOD_TYPE_LABELS[activePeriodType]}</Table.Th>
+          <Table.Th>Department</Table.Th>
+          <Table.Th>Category</Table.Th>
           <Table.Th style={{ textAlign: 'right' }}>Budget</Table.Th>
           <Table.Th style={{ textAlign: 'right' }}>Actual</Table.Th>
           <Table.Th style={{ textAlign: 'right' }}>Variance</Table.Th>
