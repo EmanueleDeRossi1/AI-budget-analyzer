@@ -8,7 +8,7 @@ export type FilterSpec = {
   categories?: string[]
   periods?: string[]
   group_by?: GroupByField[]   // ordered array — position = nesting level
-  sort_by?: 'variance' | 'budget' | 'actual'
+  sort_by?: 'variance' | 'budget' | 'actual' | 'period' | 'department' | 'category'
   sort_dir?: 'asc' | 'desc'
   period_type?: PeriodType    // passed through for correct period display + sort order
   columns?: string[]          // active derived column IDs from the operations registry
@@ -86,8 +86,29 @@ function sortRows(
   rows: FilteredRow[],
   sortBy: FilterSpec['sort_by'],
   sortDir: FilterSpec['sort_dir'],
+  periodType?: PeriodType,
 ): FilteredRow[] {
   const dir = (sortDir ?? 'desc') === 'desc' ? -1 : 1
+
+  if (sortBy === 'period') {
+    const getValue = (r: FilteredRow) =>
+      r.period ?? (r.groupField === 'period' ? r.groupValue : undefined) ?? ''
+    const unique = [...new Set(rows.map(getValue))]
+    const ordered = sortPeriodValues(unique, periodType ?? 'custom')
+    const orderMap = new Map(ordered.map((v, i) => [v, i]))
+    return [...rows].sort((a, b) =>
+      dir * ((orderMap.get(getValue(a)) ?? 999) - (orderMap.get(getValue(b)) ?? 999))
+    )
+  }
+
+  if (sortBy === 'department' || sortBy === 'category') {
+    return [...rows].sort((a, b) => {
+      const va = (a[sortBy] ?? (a.groupField === sortBy ? a.groupValue : undefined) ?? '').toLowerCase()
+      const vb = (b[sortBy] ?? (b.groupField === sortBy ? b.groupValue : undefined) ?? '').toLowerCase()
+      return dir * va.localeCompare(vb)
+    })
+  }
+
   return [...rows].sort((a, b) => {
     const va = sortBy === 'budget' ? a.budget : sortBy === 'actual' ? a.actual : a.variance
     const vb = sortBy === 'budget' ? b.budget : sortBy === 'actual' ? b.actual : b.variance
@@ -141,7 +162,7 @@ function groupRecursive(
         const order = sortPeriodValues(summaries.map(r => r.groupValue!), periodType)
         return order.map(v => summaries.find(r => r.groupValue === v)!)
       })()
-    : sortRows(summaries, sortBy, sortDir)
+    : sortRows(summaries, sortBy, sortDir, periodType)
 
   // Interleave: summary row → recursed children
   const result: FilteredRow[] = []
@@ -153,7 +174,7 @@ function groupRecursive(
     if (rest.length > 0) {
       result.push(...groupRecursive(members, rest, level + 1, sortBy, sortDir, periodType, dimValues, summary.key))
     } else {
-      for (const r of sortRows(members, sortBy, sortDir)) {
+      for (const r of sortRows(members, sortBy, sortDir, periodType)) {
         result.push({ ...r, level: level + 1 })
       }
     }
@@ -178,7 +199,7 @@ export function applyFilterSpec(items: BudgetLineItem[], spec: FilterSpec): Filt
 
   // 2. No grouping — flat sorted list
   if (groupBy.length === 0) {
-    return sortRows(rows, spec.sort_by, spec.sort_dir)
+    return sortRows(rows, spec.sort_by, spec.sort_dir, spec.period_type)
   }
 
   // 3. Grouped — recursive n-level
