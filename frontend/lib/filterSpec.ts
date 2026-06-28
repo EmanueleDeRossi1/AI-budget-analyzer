@@ -111,6 +111,7 @@ function groupRecursive(
   sortDir: FilterSpec['sort_dir'],
   periodType: PeriodType,
   parentDimensions: Partial<Record<GroupByField, string>> = {},
+  parentKey: string = '',
 ): FilteredRow[] {
   if (dimensions.length === 0) return rows
 
@@ -125,10 +126,13 @@ function groupRecursive(
     groups.get(k)!.push(row)
   }
 
-  // Build summary rows for this level
+  // Build summary rows for this level — key includes full ancestor path so
+  // the same value under different parents gets a unique key (e.g. "Software"
+  // under "Engineering" vs "Marketing" must not collide).
   const summaries: FilteredRow[] = Array.from(groups.entries()).map(([value, members]) => {
     const dimValues = { ...parentDimensions, [field]: value }
-    return summarise(members, `grp-${level}-${value}`, level, field, value, dimValues)
+    const key = parentKey ? `${parentKey}|grp-${level}-${value}` : `grp-${level}-${value}`
+    return summarise(members, key, level, field, value, dimValues)
   })
 
   // Period groups sort chronologically; all others sort by financial metric
@@ -147,7 +151,7 @@ function groupRecursive(
     const dimValues = { ...parentDimensions, [field]: summary.groupValue! }
 
     if (rest.length > 0) {
-      result.push(...groupRecursive(members, rest, level + 1, sortBy, sortDir, periodType, dimValues))
+      result.push(...groupRecursive(members, rest, level + 1, sortBy, sortDir, periodType, dimValues, summary.key))
     } else {
       for (const r of sortRows(members, sortBy, sortDir)) {
         result.push({ ...r, level: level + 1 })
