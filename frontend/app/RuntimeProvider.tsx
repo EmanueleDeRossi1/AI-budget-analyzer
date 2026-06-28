@@ -52,20 +52,25 @@ export function RuntimeProvider({
           const toolCalls = m.content.filter((p): p is ToolCallMessagePart => p.type === 'tool-call')
 
           if (m.role === 'assistant' && toolCalls.length > 0) {
-            apiMessages.push({
-              role: 'assistant',
-              content: textParts.map(p => p.text).join('') || null,
-              tool_calls: toolCalls.map(tc => ({
-                id: tc.toolCallId,
-                type: 'function',
-                function: { name: tc.toolName, arguments: tc.argsText },
-              })),
-            })
+            // In the Responses API, function calls are top-level items in the flat
+            // input array — not nested inside a message's content.
+            if (textParts.length > 0) {
+              apiMessages.push({ role: 'assistant', content: textParts.map(p => p.text).join('') })
+            }
             for (const tc of toolCalls) {
               apiMessages.push({
-                role: 'tool',
-                tool_call_id: tc.toolCallId,
-                content: tc.toolName === 'query_budget'
+                type: 'function_call',
+                id: tc.toolCallId.replace(/^call_/, 'fc_'),
+                call_id: tc.toolCallId,
+                name: tc.toolName,
+                arguments: tc.argsText,
+              })
+            }
+            for (const tc of toolCalls) {
+              apiMessages.push({
+                type: 'function_call_output',
+                call_id: tc.toolCallId,
+                output: tc.toolName === 'query_budget'
                   ? '[data fetched — will re-query]'
                   : String(tc.result ?? ''),
               })

@@ -160,7 +160,7 @@ def reset_display(ctx: RunContextWrapper[AgentContext]) -> None:
 
 agent = Agent(
     name="Budget Analyst",
-    model="o4-mini",
+    model="gpt-4o-mini",
     instructions=(
         "You are a finance analyst.\n\n"
         "Workflow: always query_budget first, then display_budget to show the answer.\n\n"
