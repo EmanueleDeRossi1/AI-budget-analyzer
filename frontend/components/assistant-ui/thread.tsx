@@ -29,7 +29,7 @@ import { toolRegistry, GenericToolCard } from '@/lib/toolRegistry'
 
 export const Thread: FC = () => (
   <ThreadPrimitive.Root className="flex h-full flex-col bg-white text-sm">
-    <ThreadPrimitive.Viewport className="relative flex flex-1 flex-col overflow-y-scroll scroll-smooth px-4 py-4">
+    <ThreadPrimitive.Viewport className="relative flex min-h-0 flex-1 flex-col overflow-y-scroll scroll-smooth px-4 py-4">
 
       {/* Welcome */}
       <AuiIf condition={(s) => s.thread.isEmpty}>
@@ -46,17 +46,21 @@ export const Thread: FC = () => (
         </ThreadPrimitive.Messages>
       </div>
 
-      {/* Footer: scroll-to-bottom + composer */}
-      <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-4 flex flex-col items-center gap-3 bg-white pb-1">
+      {/* Scroll-to-bottom only */}
+      <ThreadPrimitive.ViewportFooter className="sticky bottom-0 flex flex-col items-center bg-white pt-2">
         <ThreadPrimitive.ScrollToBottom asChild>
           <button className="rounded-full border bg-white p-2 text-gray-400 shadow-sm hover:text-gray-700 disabled:invisible">
             <ArrowDownIcon className="size-4" />
           </button>
         </ThreadPrimitive.ScrollToBottom>
-        <Composer />
       </ThreadPrimitive.ViewportFooter>
 
     </ThreadPrimitive.Viewport>
+
+    {/* Composer pinned at the bottom, outside the scroll area */}
+    <div className="flex-shrink-0 px-4 pb-3 pt-2">
+      <Composer />
+    </div>
   </ThreadPrimitive.Root>
 )
 
@@ -127,28 +131,42 @@ const UserMessage: FC = () => (
 
 // ── Edit composer ─────────────────────────────────────────────────────────────
 
-const EditComposer: FC = () => (
-  <MessagePrimitive.Root className="flex flex-col px-2">
-    <ComposerPrimitive.Root className="ms-auto flex w-full max-w-[85%] flex-col rounded-2xl bg-gray-100">
-      <ComposerPrimitive.Input
-        className="min-h-14 w-full resize-none bg-transparent p-4 text-sm outline-none"
-        autoFocus
-      />
-      <div className="mx-3 mb-3 flex items-center justify-end gap-2">
-        <ComposerPrimitive.Cancel asChild>
-          <button className="rounded-lg px-3 py-1 text-sm text-gray-500 hover:bg-gray-200">
-            Cancel
-          </button>
-        </ComposerPrimitive.Cancel>
-        <ComposerPrimitive.Send asChild>
-          <button className="rounded-lg bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700">
-            Update
-          </button>
-        </ComposerPrimitive.Send>
-      </div>
-    </ComposerPrimitive.Root>
-  </MessagePrimitive.Root>
-)
+const EditComposer: FC = () => {
+  const originalText = useAuiState((s) =>
+    (s.message.content ?? [])
+      .filter((p: any): p is { type: 'text'; text: string } => p.type === 'text')
+      .map((p: any) => p.text)
+      .join('')
+  )
+  const currentText = useAuiState((s) => (s.message.composer as any).text ?? '')
+  const isUnchanged = currentText.trim() === '' || currentText === originalText
+
+  return (
+    <MessagePrimitive.Root className="flex flex-col px-2">
+      <ComposerPrimitive.Root className="ms-auto flex w-full max-w-[85%] flex-col rounded-2xl bg-gray-100">
+        <ComposerPrimitive.Input
+          className="min-h-14 w-full resize-none bg-transparent p-4 text-sm outline-none"
+          autoFocus
+        />
+        <div className="mx-3 mb-3 flex items-center justify-end gap-2">
+          <ComposerPrimitive.Cancel asChild>
+            <button className="rounded-lg px-3 py-1 text-sm text-gray-500 hover:bg-gray-200">
+              Cancel
+            </button>
+          </ComposerPrimitive.Cancel>
+          <ComposerPrimitive.Send asChild>
+            <button
+              disabled={isUnchanged}
+              className="rounded-lg bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Update
+            </button>
+          </ComposerPrimitive.Send>
+        </div>
+      </ComposerPrimitive.Root>
+    </MessagePrimitive.Root>
+  )
+}
 
 // ── Assistant message ─────────────────────────────────────────────────────────
 
@@ -168,7 +186,7 @@ const AssistantMessage: FC = () => (
       }} />
     </div>
 
-    <div className="mt-1 flex items-center gap-1">
+    <div className="mt-1 flex min-h-[1.5rem] items-center gap-1">
       <BranchPicker />
       <ActionBarPrimitive.Root
         hideWhenRunning
