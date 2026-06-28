@@ -11,7 +11,7 @@ A workspace for reviewing budget scenarios with an AI assistant — ask question
 ```bash
 cp .env.example .env
 # Set OPENAI_API_KEY in .env
-docker-compose up
+docker compose up
 ```
 
 Open http://localhost:3000. A demo scenario loads automatically.
