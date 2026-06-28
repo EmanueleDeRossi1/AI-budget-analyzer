@@ -1,13 +1,10 @@
 import json
-from datetime import date as _date
 from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from asgiref.sync import sync_to_async
 from agents import Runner
-from budget.models import BudgetScenario
 from .agent import agent, AgentContext
-from .utils import current_period_label, tool_call_to_operation
+from .utils import tool_call_to_operation
 
 
 def _sse(payload: dict) -> str:
@@ -23,15 +20,7 @@ async def chat(request):
         return JsonResponse({"error": "scenario_id is required"}, status=400)
 
     context = AgentContext(scenario_id=scenario_id)
-
-    scenario = await sync_to_async(BudgetScenario.objects.get)(id=scenario_id)
-    current_period = current_period_label(scenario.period_type)
-    today_str = _date.today().strftime('%B %d, %Y')
-    context_msg = {
-        "role": "system",
-        "content": f"Today is {today_str}. The current period for this scenario is: {current_period}.",
-    }
-    messages = [context_msg] + data.get("messages", [])
+    messages = data.get("messages", [])
 
     async def stream():
         try:
