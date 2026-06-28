@@ -25,6 +25,32 @@ Open http://localhost:3000. A demo scenario loads automatically.
 | `DJANGO_DEBUG` | `True` for local dev |
 | `NEXT_PUBLIC_API_URL` | Backend base URL seen by the browser (`http://localhost:8000` for local) |
 
+## Testing
+
+Tests live in `backend/tests/`. They use pytest + pytest-django and run against SQLite — no running containers needed.
+
+```bash
+cd backend
+pip install -r requirements.txt
+pytest
+```
+
+To run inside Docker (same environment as production):
+
+```bash
+docker-compose run --rm backend pytest
+```
+
+Test files and what they cover:
+
+- `test_period_label.py` — `current_period_label`: all four period types, quarter/half boundaries
+- `test_tool_call_to_operation.py` — SSE operation mapping for `display_budget` (filters, sort, group_by, columns) and `reset_display`
+- `test_query_budget.py` — variance math (under/over budget, zero-budget edge case), burn rate, pct_of_total, dimension filters, `min/max_variance_pct` thresholds, group-by aggregation, scenario isolation
+- `test_api.py` — scenario CRUD, line item `?scenario=` filter, cascade delete, invalid period_type rejection
+- `test_chat_endpoint.py` — missing `scenario_id` → 400, GET not allowed → 405
+
+The pure-function tests (`test_period_label`, `test_tool_call_to_operation`) import from `chat/utils.py` rather than `chat/views.py` so the Agents SDK is never loaded during the test run.
+
 ## What's built
 
 **Backend** — Django REST Framework + PostgreSQL + uvicorn (ASGI)
