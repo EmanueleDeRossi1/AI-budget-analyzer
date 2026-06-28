@@ -41,13 +41,41 @@ export function RuntimeProvider({
   const adapter = useMemo<ChatModelAdapter>(
     () => ({
       async *run({ messages, abortSignal }) {
-        const apiMessages = messages.map(m => ({
-          role: m.role,
-          content: m.content
-            .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
-            .map(p => p.text)
-            .join(''),
-        }))
+        // Build OpenAI-format message history including tool calls, but replace
+        // query_budget results with a placeholder to avoid sending the full budget
+        // JSON payload on every turn. The model will re-query fresh data as needed
+        // while still retaining display_budget / reset_display context.
+        const apiMessages: object[] = []
+        for (const m of messages) {
+          const textParts = m.content.filter((p): p is TextMessagePart => p.type === 'text')
+          const toolCalls = m.content.filter((p): p is ToolCallMessagePart => p.type === 'tool-call')
+
+          if (m.role === 'assistant' && toolCalls.length > 0) {
+            apiMessages.push({
+              role: 'assistant',
+              content: textParts.map(p => p.text).join('') || null,
+              tool_calls: toolCalls.map(tc => ({
+                id: tc.toolCallId,
+                type: 'function',
+                function: { name: tc.toolName, arguments: tc.argsText },
+              })),
+            })
+            for (const tc of toolCalls) {
+              apiMessages.push({
+                role: 'tool',
+                tool_call_id: tc.toolCallId,
+                content: tc.toolName === 'query_budget'
+                  ? '[data fetched — will re-query]'
+                  : String(tc.result ?? ''),
+              })
+            }
+          } else {
+            apiMessages.push({
+              role: m.role,
+              content: textParts.map(p => p.text).join(''),
+            })
+          }
+        }
 
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/chat/`,

@@ -76,6 +76,10 @@ Django (ASGI / uvicorn)
 - Chat history is in-memory only; page refresh starts a fresh conversation
 - Frontend runs `next dev` in Docker (fine for review, not optimized for production)
 
+## Small note
+
+Message history sent to the backend includes tool calls, but `query_budget` results are replaced with a `[data fetched — will re-query]` placeholder instead of the full budget JSON. This keeps the context window lean across long conversations while still giving the model visibility into previous `display_budget` / `reset_display` calls — so it retains display-state continuity without carrying stale data payloads into every subsequent turn.
+
 ## What I'd improve with more time
 
 - Persist chat turns linked to a scenario and restore on page load
