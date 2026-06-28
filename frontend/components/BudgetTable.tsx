@@ -196,14 +196,7 @@ export default function BudgetTable({
   function periodCell(item: BudgetLineItem, display: React.ReactNode) {
     const isEditing = editCell?.itemId === item.id && editCell.field === 'period'
 
-    const input = activePeriodType === 'custom' ? (
-      <CellInput
-        value={editCell?.value ?? ''}
-        onChange={updateValue}
-        onSave={saveCellEdit}
-        onCancel={cancelCellEdit}
-      />
-    ) : (
+    const input = (
       <Select
         data={periodOptions(activePeriodType)}
         value={editCell?.value ?? null}

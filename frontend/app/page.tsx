@@ -113,7 +113,7 @@ export default function Home() {
   // ── Derived state ───────────────────────────────────────────────────────
 
   const selectedScenario = scenarios.find(s => s.id === selectedId)
-  const activePeriodType: PeriodType = selectedScenario?.period_type ?? 'custom'
+  const activePeriodType: PeriodType = selectedScenario?.period_type ?? 'year'
   const activeSpec: FilterSpec = { ...filterSpec, period_type: activePeriodType }
   const visibleRows = applyFilterSpec(lineItems, activeSpec)
 

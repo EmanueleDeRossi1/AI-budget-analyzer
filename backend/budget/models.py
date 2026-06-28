@@ -6,7 +6,6 @@ PERIOD_TYPE_CHOICES = [
     ('half',    'Half-year'),
     ('quarter', 'Quarter'),
     ('month',   'Month'),
-    ('custom',  'Custom'),
 ]
 
 

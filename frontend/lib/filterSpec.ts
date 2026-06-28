@@ -97,7 +97,7 @@ function sortRows(
     const getValue = (r: FilteredRow) =>
       r.period ?? (r.groupField === 'period' ? r.groupValue : undefined) ?? ''
     const unique = [...new Set(rows.map(getValue))]
-    const ordered = sortPeriodValues(unique, periodType ?? 'custom')
+    const ordered = sortPeriodValues(unique, periodType ?? 'year')
     const orderMap = new Map(ordered.map((v, i) => [v, i]))
     return [...rows].sort((a, b) =>
       dir * ((orderMap.get(getValue(a)) ?? 999) - (orderMap.get(getValue(b)) ?? 999))
@@ -200,7 +200,7 @@ export function applyFilterSpec(items: BudgetLineItem[], spec: FilterSpec): Filt
   }
 
   // 3. Grouped — recursive n-level
-  return groupRecursive(rows, groupBy, 0, spec.sort_by, spec.sort_dir, spec.period_type ?? 'custom')
+  return groupRecursive(rows, groupBy, 0, spec.sort_by, spec.sort_dir, spec.period_type ?? 'year')
 }
 
 export function isEmptySpec(spec: FilterSpec): boolean {

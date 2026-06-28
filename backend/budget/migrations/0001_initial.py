@@ -20,7 +20,6 @@ class Migration(migrations.Migration):
                         ("half", "Half-year"),
                         ("quarter", "Quarter"),
                         ("month", "Month"),
-                        ("custom", "Custom"),
                     ],
                     default="quarter",
                     max_length=10,
