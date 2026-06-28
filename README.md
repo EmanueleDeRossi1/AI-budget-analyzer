@@ -24,7 +24,7 @@ Open http://localhost:3000. A demo scenario loads automatically.
 
 **Frontend**: Next.js, budget table + chat panel side by side. I used existing libraries rather than building custom: [assistant-ui](https://www.assistant-ui.com/) for the chat (streaming, tool-call rendering, message history, copy/retry actions... all out of the box) and [Mantine](https://mantine.dev) for everything else (clean, data-dense, looks good without much work).
 
-**AI**: OpenAI Agents SDK with `gpt-4o-mini`. Handles tool schema generation, streaming events, and the run loop out of the box — raw `openai` calls would have required wiring all of that manually.
+**AI**: OpenAI Agents SDK with `gpt-4o`. Handles tool schema generation, streaming events, and the run loop out of the box — raw `openai` calls would have required wiring all of that manually.
 
 
 ## Architecture and trade-offs
