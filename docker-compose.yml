@@ -24,6 +24,21 @@ services:
       db:
         condition: service_healthy
 
+  test:
+    build: ./backend
+    entrypoint: ""
+    command: >
+      sh -c "pip install -r /tests/requirements-test.txt -q &&
+             pytest /tests -v"
+    environment:
+      DJANGO_SETTINGS_MODULE: budget_analyst.settings
+      DJANGO_SECRET_KEY: test-secret-key
+      DATABASE_URL: sqlite:////tmp/test.db
+      DJANGO_DEBUG: "True"
+    volumes:
+      - ./backend:/app
+      - ./tests:/tests
+
   frontend:
     build: ./frontend
     env_file: .env

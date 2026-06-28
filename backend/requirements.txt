@@ -6,7 +6,3 @@ dj-database-url==2.2.0
 openai-agents==0.0.19
 uvicorn==0.30.6
 
-# test
-pytest==8.3.5
-pytest-django==4.9.0
-pytest-asyncio==0.24.0
