@@ -6,22 +6,32 @@ import {
   useLocalRuntime,
   type ChatModelAdapter,
 } from '@assistant-ui/react'
-import { FilterSpec } from '@/lib/filterSpec'
+import { FilterSpec, HighlightSpec } from '@/lib/filterSpec'
 
 export function RuntimeProvider({
   children,
   scenarioId,
   onFilterSpec,
+  onHighlightSpec,
+  onResetView,
 }: {
   children: React.ReactNode
   scenarioId: number | null
   onFilterSpec?: (spec: FilterSpec) => void
+  onHighlightSpec?: (spec: HighlightSpec) => void
+  onResetView?: () => void
 }) {
   const scenarioIdRef = useRef(scenarioId)
   scenarioIdRef.current = scenarioId
 
   const onFilterSpecRef = useRef(onFilterSpec)
   onFilterSpecRef.current = onFilterSpec
+
+  const onHighlightSpecRef = useRef(onHighlightSpec)
+  onHighlightSpecRef.current = onHighlightSpec
+
+  const onResetViewRef = useRef(onResetView)
+  onResetViewRef.current = onResetView
 
   const adapter = useMemo<ChatModelAdapter>(
     () => ({
@@ -68,6 +78,16 @@ export function RuntimeProvider({
 
               if (data.filter_spec) {
                 onFilterSpecRef.current?.(data.filter_spec as FilterSpec)
+                continue
+              }
+
+              if (data.highlight_spec) {
+                onHighlightSpecRef.current?.(data.highlight_spec as HighlightSpec)
+                continue
+              }
+
+              if (data.reset_view !== undefined) {
+                onResetViewRef.current?.()
                 continue
               }
 

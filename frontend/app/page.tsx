@@ -7,7 +7,7 @@ import {
 } from '@mantine/core'
 import { Trash2, Plus, CopyPlus } from 'lucide-react'
 import { api, BudgetScenario, BudgetLineItem } from '@/lib/api'
-import { FilterSpec, FilteredRow, GroupByField, applyFilterSpec } from '@/lib/filterSpec'
+import { FilterSpec, FilteredRow, GroupByField, HighlightSpec, applyFilterSpec, matchesHighlight } from '@/lib/filterSpec'
 import { PeriodType, PERIOD_TYPE_LABELS, periodLabel, periodOptions } from '@/lib/periods'
 import { RuntimeProvider } from './RuntimeProvider'
 import { Thread } from '@/components/assistant-ui/thread'
@@ -86,6 +86,7 @@ export default function Home() {
   const [newRow, setNewRow] = useState<Partial<BudgetLineItem>>({})
   const [showModal, setShowModal] = useState(false)
   const [filterSpec, setFilterSpec] = useState<FilterSpec>({})
+  const [highlightSpec, setHighlightSpec] = useState<HighlightSpec | null>(null)
 
   useEffect(() => {
     api.getScenarios().then(data => {
@@ -97,6 +98,7 @@ export default function Home() {
   useEffect(() => {
     if (selectedId) {
       setFilterSpec({})
+      setHighlightSpec(null)
       api.getLineItems(selectedId).then(setLineItems)
     }
   }, [selectedId])
@@ -248,7 +250,16 @@ export default function Home() {
     )
   }
 
+  function isHighlighted(item: BudgetLineItem): boolean {
+    if (!highlightSpec) return false
+    return matchesHighlight(
+      { department: item.department, category: item.category, period: item.period ?? '' },
+      highlightSpec,
+    )
+  }
+
   function renderLeafRow(row: FilteredRow, item: BudgetLineItem, isGrouped: boolean) {
+    const highlighted = isHighlighted(item)
     const actions = (
       <Group gap={4} wrap="nowrap" style={{ opacity: 0 }} className="row-actions">
         <ActionIcon variant="subtle" size="sm" color="gray" onClick={() => duplicateItem(item)} title="Duplicate">
@@ -274,7 +285,7 @@ export default function Home() {
       const paddingLeft = 8 + row.level * 16
 
       return (
-        <Table.Tr key={row.key}>
+        <Table.Tr key={row.key} style={highlighted ? { outline: '2px solid var(--mantine-color-blue-4)', outlineOffset: '-2px' } : undefined}>
           <Table.Td colSpan={3} style={{ paddingLeft, color: 'var(--mantine-color-gray-7)' }}>
             <Text size="sm">{label}</Text>
           </Table.Td>
@@ -296,7 +307,7 @@ export default function Home() {
     }
 
     return (
-      <Table.Tr key={row.key}>
+      <Table.Tr key={row.key} style={highlighted ? { outline: '2px solid var(--mantine-color-blue-4)', outlineOffset: '-2px' } : undefined}>
         <Table.Td>{periodCell(item, row.period ? periodLabel(row.period, activePeriodType) : '—')}</Table.Td>
         <Table.Td fw={500}>{suggestCell(item, 'department', row.department, uniqueDepts)}</Table.Td>
         <Table.Td>{suggestCell(item, 'category', row.category, uniqueCats)}</Table.Td>
@@ -355,7 +366,12 @@ export default function Home() {
   }
 
   return (
-    <RuntimeProvider scenarioId={selectedId} onFilterSpec={setFilterSpec}>
+    <RuntimeProvider
+      scenarioId={selectedId}
+      onFilterSpec={setFilterSpec}
+      onHighlightSpec={setHighlightSpec}
+      onResetView={() => { setFilterSpec({}); setHighlightSpec(null) }}
+    >
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--mantine-color-gray-0)' }}>
 
         {/* Header */}
