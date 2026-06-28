@@ -4,6 +4,13 @@ from typing import Callable
 from agents import Agent, function_tool, RunContextWrapper
 from asgiref.sync import sync_to_async
 from budget.models import BudgetLineItem
+from pydantic import BaseModel
+
+
+class DimensionFilter(BaseModel):
+    period: list[str] = []
+    department: list[str] = []
+    category: list[str] = []
 
 
 # ── Agent context ─────────────────────────────────────────────────────────────
@@ -17,97 +24,119 @@ class AgentContext:
 # ── Tools ─────────────────────────────────────────────────────────────────────
 
 @function_tool
-async def get_budget_data(ctx: RunContextWrapper[AgentContext]) -> str:
+async def query_budget(
+    ctx: RunContextWrapper[AgentContext],
+    filters: DimensionFilter = DimensionFilter(),
+    group_by: list[str] = [],
+) -> str:
     """
-    Fetch all budget line items for the current scenario with pre-computed variances.
+    Fetch budget line items for the current scenario with pre-computed variances.
     Always call this before answering any budget question.
+
+    filters: narrow results by dimension.
+             fields: period, department, category (each a list of values to include)
+
+    group_by: aggregate by dimension(s), e.g. ["department"] or ["period", "category"]
+              valid values: "period", "department", "category"
+              omit for raw rows.
     """
     def _fetch():
-        items = list(BudgetLineItem.objects.filter(scenario_id=ctx.context.scenario_id))
-        result = []
-        for item in items:
-            variance = item.budget_amount - item.actual_amount
-            pct = (variance / item.budget_amount * 100) if item.budget_amount else 0
-            entry = {
-                "period": item.period,
-                "department": item.department,
-                "category": item.category,
-                "budget": float(item.budget_amount),
-                "actual": float(item.actual_amount),
-                "variance": float(variance),
-                "variance_pct": round(float(pct), 1),
-                "over_budget": variance < 0,
-            }
-            if item.notes:
-                entry["notes"] = item.notes
-            result.append(entry)
+        qs = BudgetLineItem.objects.filter(scenario_id=ctx.context.scenario_id)
+
+        for dim, values in filters.model_dump().items():
+            if values:
+                qs = qs.filter(**{f"{dim}__in": values})
+
+        valid_group = [g for g in group_by if g in DimensionFilter.model_fields]
+
+        if valid_group:
+            from django.db.models import Sum
+            rows = qs.values(*valid_group).annotate(
+                budget_amount=Sum("budget_amount"),
+                actual_amount=Sum("actual_amount"),
+            )
+            result = []
+            for row in rows:
+                variance = row["budget_amount"] - row["actual_amount"]
+                pct = (variance / row["budget_amount"] * 100) if row["budget_amount"] else 0
+                result.append({
+                    **{k: row[k] for k in valid_group},
+                    "budget": float(row["budget_amount"]),
+                    "actual": float(row["actual_amount"]),
+                    "variance": float(variance),
+                    "variance_pct": round(float(pct), 1),
+                    "over_budget": variance < 0,
+                })
+        else:
+            result = []
+            for item in list(qs):
+                variance = item.budget_amount - item.actual_amount
+                pct = (variance / item.budget_amount * 100) if item.budget_amount else 0
+                entry = {
+                    "period": item.period,
+                    "department": item.department,
+                    "category": item.category,
+                    "budget": float(item.budget_amount),
+                    "actual": float(item.actual_amount),
+                    "variance": float(variance),
+                    "variance_pct": round(float(pct), 1),
+                    "over_budget": variance < 0,
+                }
+                if item.notes:
+                    entry["notes"] = item.notes
+                result.append(entry)
+
         return result
 
     return json.dumps(await sync_to_async(_fetch)())
 
 
 @function_tool
-def update_view(
+def display_budget(
     ctx: RunContextWrapper[AgentContext],
-    departments: list[str] = [],
-    categories: list[str] = [],
-    periods: list[str] = [],
+    filters: DimensionFilter = DimensionFilter(),
+    highlights: DimensionFilter = DimensionFilter(),
     group_by: list[str] = [],
     sort_by: str = "variance",
     sort_dir: str = "desc",
-    highlight_departments: list[str] = [],
-    highlight_categories: list[str] = [],
-    highlight_periods: list[str] = [],
     columns: list[str] = [],
 ) -> str:
     """
     Update the budget table: filter, group, sort, highlight, and toggle computed columns.
-    Use only exact values from get_budget_data.
+    Use only exact values from query_budget.
 
-    Filter (empty = show all):
-      departments, categories, periods
+    filters: hide non-matching rows.
+             fields: period, department, category (each a list of values to include)
 
-    Layout:
-      group_by: e.g. ["department"] or ["period", "category"]
-               valid values: "period", "department", "category"
-      sort_by: "variance" | "budget" | "actual"
-      sort_dir: "desc" | "asc"
+    highlights: draw attention to rows without hiding others.
+                fields: period, department, category
 
-    Highlight (draw attention without hiding other rows):
-      highlight_departments, highlight_categories, highlight_periods
+    group_by: e.g. ["department"] or ["period", "category"]
+              valid values: "period", "department", "category"
+              only use when comparing across a dimension, not for single-row lookups.
 
-    Computed columns (toggle derived columns in the table):
-      columns: e.g. ["pctOfTotal", "burnRate"]
-               valid values: "pctOfTotal", "burnRate", "variancePct", "runningTotal", "rank"
+    sort_by: "variance" | "budget" | "actual"
+    sort_dir: "desc" | "asc"
+
+    columns: toggle computed columns, e.g. ["pctOfTotal", "burnRate"]
+             valid values: "pctOfTotal", "burnRate", "variancePct", "runningTotal", "rank"
     """
-    params: dict = {"sort_by": sort_by, "sort_dir": sort_dir}
-    if departments:
-        params["departments"] = departments
-    if categories:
-        params["categories"] = categories
-    if periods:
-        params["periods"] = periods
-    valid_group = [g for g in group_by if g in ("period", "department", "category")]
-    if valid_group:
-        params["group_by"] = valid_group
-    if columns:
-        valid_cols = [c for c in columns if c in ("pctOfTotal", "burnRate", "variancePct", "runningTotal", "rank")]
-        if valid_cols:
-            params["columns"] = valid_cols
-    if highlight_departments:
-        params["highlight_departments"] = highlight_departments
-    if highlight_categories:
-        params["highlight_categories"] = highlight_categories
-    if highlight_periods:
-        params["highlight_periods"] = highlight_periods
-
+    params = {
+        "sort_by": sort_by,
+        "sort_dir": sort_dir,
+        **{k: v for k, v in {
+            "filters": filters.model_dump(exclude_defaults=True),
+            "highlights": highlights.model_dump(exclude_defaults=True),
+            "group_by": group_by,
+            "columns": columns,
+        }.items() if v},
+    }
     ctx.context.emit("operation", {"id": "updateView", "params": params})
-
     return "View updated."
 
 
 @function_tool
-def reset_view(ctx: RunContextWrapper[AgentContext]) -> str:
+def reset_display(ctx: RunContextWrapper[AgentContext]) -> str:
     """
     Clear all filters, groupings, highlights, and computed columns,
     returning the table to its default flat view.
@@ -123,16 +152,16 @@ agent = Agent(
     model="o4-mini",
     instructions=(
         "You are a finance analyst.\n\n"
-        "Workflow: always get_budget_data first, then update_view to show the answer.\n\n"
+        "Workflow: always query_budget first, then display_budget to show the answer.\n\n"
         "Variance = Budget − Actual. Positive = favorable, negative = unfavorable.\n\n"
         "Use only exact values from the data. Do your own arithmetic carefully "
         "using the pre-computed fields (variance, variance_pct) where possible.\n\n"
-        "update_view: highlight the rows that answer the question. "
+        "display_budget: highlight the rows that answer the question. "
         "Only group_by when the user is comparing across a dimension (e.g. 'by department'). "
         "Don't group for single-row lookups.\n\n"
         "When showing percentages or comparisons, toggle the appropriate computed columns "
         "(pctOfTotal, burnRate, variancePct, rank) so the user can see them in the table.\n\n"
         "Reply in 1-2 sentences. Don't repeat what the table shows."
     ),
-    tools=[get_budget_data, update_view, reset_view],
+    tools=[query_budget, display_budget, reset_display],
 )
