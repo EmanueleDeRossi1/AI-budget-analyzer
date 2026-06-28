@@ -1,4 +1,5 @@
 import { BudgetLineItem } from '../api'
+import { toNum, applyFilters } from '../budget'
 import { FilterSpec, GroupByField } from '../filterSpec'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -33,24 +34,6 @@ export type DerivedColumnDef<TParams = any> = OperationDef<TParams, never> & {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function num(v: string | number): number {
-  return typeof v === 'string' ? parseFloat(v) || 0 : v
-}
-
-function applyFilters(
-  items: BudgetLineItem[],
-  filters?: { departments?: string[]; categories?: string[]; periods?: string[] },
-): BudgetLineItem[] {
-  let result = items
-  if (filters?.departments?.length)
-    result = result.filter(i => filters.departments!.includes(i.department))
-  if (filters?.categories?.length)
-    result = result.filter(i => filters.categories!.includes(i.category))
-  if (filters?.periods?.length)
-    result = result.filter(i => filters.periods!.includes(i.period))
-  return result
-}
 
 function groupAndReduce(
   items: BudgetLineItem[],
@@ -197,9 +180,9 @@ const sum: OperationDef<
     const items = applyFilters(ctx.lineItems, params.filters)
     const field = params.field ?? 'actual'
     const valueOf = (i: BudgetLineItem) => {
-      if (field === 'budget') return num(i.budget_amount)
-      if (field === 'variance') return num(i.budget_amount) - num(i.actual_amount)
-      return num(i.actual_amount)
+      if (field === 'budget') return toNum(i.budget_amount)
+      if (field === 'variance') return toNum(i.budget_amount) - toNum(i.actual_amount)
+      return toNum(i.actual_amount)
     }
     if (params.groupBy) {
       return groupAndReduce(items, params.groupBy, members =>
@@ -219,7 +202,7 @@ const count: OperationDef<
   execute: (ctx, params) => {
     let items = applyFilters(ctx.lineItems, params.filters)
     if (params.overBudget) {
-      items = items.filter(i => num(i.actual_amount) > num(i.budget_amount))
+      items = items.filter(i => toNum(i.actual_amount) > toNum(i.budget_amount))
     }
     if (params.groupBy) {
       return groupAndReduce(items, params.groupBy, members => members.length)
@@ -239,9 +222,9 @@ const min: OperationDef<
     if (!items.length) return null
     const field = params.field ?? 'actual'
     const valueOf = (i: BudgetLineItem) => {
-      if (field === 'budget') return num(i.budget_amount)
-      if (field === 'variance') return num(i.budget_amount) - num(i.actual_amount)
-      return num(i.actual_amount)
+      if (field === 'budget') return toNum(i.budget_amount)
+      if (field === 'variance') return toNum(i.budget_amount) - toNum(i.actual_amount)
+      return toNum(i.actual_amount)
     }
     return Math.round(Math.min(...items.map(valueOf)) * 100) / 100
   },
@@ -258,9 +241,9 @@ const max: OperationDef<
     if (!items.length) return null
     const field = params.field ?? 'actual'
     const valueOf = (i: BudgetLineItem) => {
-      if (field === 'budget') return num(i.budget_amount)
-      if (field === 'variance') return num(i.budget_amount) - num(i.actual_amount)
-      return num(i.actual_amount)
+      if (field === 'budget') return toNum(i.budget_amount)
+      if (field === 'variance') return toNum(i.budget_amount) - toNum(i.actual_amount)
+      return toNum(i.actual_amount)
     }
     return Math.round(Math.max(...items.map(valueOf)) * 100) / 100
   },
@@ -274,8 +257,8 @@ const pctOfBudget: OperationDef<
   kind: 'compute',
   execute: (ctx, params) => {
     const items = applyFilters(ctx.lineItems, params.filters)
-    const b = items.reduce((s, i) => s + num(i.budget_amount), 0)
-    const a = items.reduce((s, i) => s + num(i.actual_amount), 0)
+    const b = items.reduce((s, i) => s + toNum(i.budget_amount), 0)
+    const a = items.reduce((s, i) => s + toNum(i.actual_amount), 0)
     return b ? Math.round((a / b) * 1000) / 10 : null
   },
 }
@@ -287,9 +270,9 @@ const pctOfTotal: OperationDef<
   id: 'pctOfTotal',
   kind: 'compute',
   execute: (ctx, params) => {
-    const totalActual = ctx.lineItems.reduce((s, i) => s + num(i.actual_amount), 0)
+    const totalActual = ctx.lineItems.reduce((s, i) => s + toNum(i.actual_amount), 0)
     const items = applyFilters(ctx.lineItems, params.filters)
-    const filteredActual = items.reduce((s, i) => s + num(i.actual_amount), 0)
+    const filteredActual = items.reduce((s, i) => s + toNum(i.actual_amount), 0)
     return totalActual ? Math.round((filteredActual / totalActual) * 1000) / 10 : null
   },
 }

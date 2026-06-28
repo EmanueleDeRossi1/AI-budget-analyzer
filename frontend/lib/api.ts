@@ -17,7 +17,6 @@ export interface BudgetLineItem {
   category: string
   budget_amount: string
   actual_amount: string
-  variance: number
   notes: string
 }
 

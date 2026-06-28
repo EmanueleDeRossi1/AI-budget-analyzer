@@ -4,20 +4,21 @@ import { Box, SimpleGrid, Paper, Text, Group } from '@mantine/core'
 import { BarChart } from '@mantine/charts'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { BudgetLineItem } from '@/lib/api'
+import { toNum, computeVariance } from '@/lib/budget'
 import { fmt } from '@/lib/utils'
 
 export default function StatsBar({ items }: { items: BudgetLineItem[] }) {
-  const totalBudget = items.reduce((s, i) => s + Number(i.budget_amount), 0)
-  const totalActual = items.reduce((s, i) => s + Number(i.actual_amount), 0)
-  const delta = totalBudget - totalActual
+  const totalBudget = items.reduce((s, i) => s + toNum(i.budget_amount), 0)
+  const totalActual = items.reduce((s, i) => s + toNum(i.actual_amount), 0)
+  const delta = computeVariance(totalBudget, totalActual)
   const favorable = delta >= 0
 
   const chartData = Array.from(new Set(items.map(i => i.department))).map(dept => {
     const deptItems = items.filter(i => i.department === dept)
     return {
       department: dept,
-      Budget: deptItems.reduce((s, i) => s + Number(i.budget_amount), 0),
-      Actual: deptItems.reduce((s, i) => s + Number(i.actual_amount), 0),
+      Budget: deptItems.reduce((s, i) => s + toNum(i.budget_amount), 0),
+      Actual: deptItems.reduce((s, i) => s + toNum(i.actual_amount), 0),
     }
   })
 

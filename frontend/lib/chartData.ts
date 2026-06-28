@@ -1,5 +1,5 @@
 import { BudgetLineItem } from './api'
-import { FilterSpec, applyFilters } from './filterSpec'
+import { toNum, computeVariance, computeVariancePct } from './budget'
 import { PeriodType, periodLabel, sortPeriodValues } from './periods'
 
 export type ChartRow = {
@@ -18,12 +18,6 @@ export type PeriodChartData = {
 }
 
 /**
- * Apply only the filter part of a FilterSpec to raw line items.
- * Re-exported here for convenience — the canonical implementation lives in filterSpec.ts.
- */
-export { applyFilters }
-
-/**
  * Group filtered items by a single dimension (department or category),
  * summing budget and actual, computing variance.
  */
@@ -36,13 +30,13 @@ export function aggregateByDimension(
     const key = item[field] || '—'
     const g = groups.get(key) ?? { budget: 0, actual: 0 }
     groups.set(key, {
-      budget: g.budget + Number(item.budget_amount),
-      actual: g.actual + Number(item.actual_amount),
+      budget: g.budget + toNum(item.budget_amount),
+      actual: g.actual + toNum(item.actual_amount),
     })
   }
   return Array.from(groups.entries()).map(([name, { budget, actual }]) => {
-    const variance = budget - actual
-    return { name, budget, actual, variance, variance_pct: budget ? (variance / budget) * 100 : 0 }
+    const variance = computeVariance(budget, actual)
+    return { name, budget, actual, variance, variance_pct: computeVariancePct(budget, actual) }
   })
 }
 
@@ -61,22 +55,22 @@ export function aggregateByPeriod(
   for (const item of withPeriod) {
     const g = groups.get(item.period) ?? { budget: 0, actual: 0 }
     groups.set(item.period, {
-      budget: g.budget + Number(item.budget_amount),
-      actual: g.actual + Number(item.actual_amount),
+      budget: g.budget + toNum(item.budget_amount),
+      actual: g.actual + toNum(item.actual_amount),
     })
   }
 
   const sorted = sortPeriodValues([...groups.keys()], periodType)
   const rows: PeriodChartRow[] = sorted.map(period => {
     const { budget, actual } = groups.get(period)!
-    const variance = budget - actual
+    const variance = computeVariance(budget, actual)
     return {
       period,
       name: periodLabel(period, periodType),
       budget,
       actual,
       variance,
-      variance_pct: budget ? (variance / budget) * 100 : 0,
+      variance_pct: computeVariancePct(budget, actual),
     }
   })
 

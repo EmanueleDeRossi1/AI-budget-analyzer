@@ -1,5 +1,8 @@
 import { BudgetLineItem } from './api'
+import { toNum, computeVariance, computeVariancePct, applyFilters as _applyFilters, DimensionFilters } from './budget'
 import { PeriodType, periodLabel, sortPeriodValues } from './periods'
+
+export { applyFilters } from './budget'
 
 export type GroupByField = 'period' | 'department' | 'category'
 
@@ -38,9 +41,9 @@ export type FilteredRow = {
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function toRow(item: BudgetLineItem): FilteredRow {
-  const budget = Number(item.budget_amount)
-  const actual = Number(item.actual_amount)
-  const variance = budget - actual
+  const budget = toNum(item.budget_amount)
+  const actual = toNum(item.actual_amount)
+  const variance = computeVariance(budget, actual)
   return {
     key: String(item.id),
     period: item.period || undefined,
@@ -49,7 +52,7 @@ function toRow(item: BudgetLineItem): FilteredRow {
     budget,
     actual,
     variance,
-    variance_pct: budget ? (variance / budget) * 100 : 0,
+    variance_pct: computeVariancePct(budget, actual),
     notes: item.notes,
     level: 0,
     isGroupRow: false,
@@ -66,14 +69,14 @@ function summarise(
 ): FilteredRow {
   const budget   = rows.reduce((s, r) => s + r.budget, 0)
   const actual   = rows.reduce((s, r) => s + r.actual, 0)
-  const variance = budget - actual
+  const variance = computeVariance(budget, actual)
   return {
     key,
     ...dimensionValues,
     budget,
     actual,
     variance,
-    variance_pct: budget ? (variance / budget) * 100 : 0,
+    variance_pct: computeVariancePct(budget, actual),
     item_count: rows.length,
     isGroupRow: true,
     level,
@@ -184,20 +187,9 @@ function groupRecursive(
 
 // ── main export ───────────────────────────────────────────────────────────────
 
-export function applyFilters(items: BudgetLineItem[], spec: FilterSpec): BudgetLineItem[] {
-  let filtered = items
-  if (spec.departments?.length)
-    filtered = filtered.filter(i => spec.departments!.includes(i.department))
-  if (spec.categories?.length)
-    filtered = filtered.filter(i => spec.categories!.includes(i.category))
-  if (spec.periods?.length)
-    filtered = filtered.filter(i => spec.periods!.includes(i.period))
-  return filtered
-}
-
 export function applyFilterSpec(items: BudgetLineItem[], spec: FilterSpec): FilteredRow[] {
   // 1. Filter
-  let filtered = applyFilters(items, spec)
+  let filtered = _applyFilters(items, spec)
 
   const groupBy = spec.group_by ?? []
   const rows = filtered.map(toRow)

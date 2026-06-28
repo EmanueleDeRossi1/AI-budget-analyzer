@@ -3,17 +3,12 @@ from .models import BudgetScenario, BudgetLineItem
 
 
 class BudgetLineItemSerializer(serializers.ModelSerializer):
-    variance = serializers.SerializerMethodField()
-
     class Meta:
         model = BudgetLineItem
         fields = [
             "id", "scenario", "period", "department", "category",
-            "budget_amount", "actual_amount", "variance", "notes",
+            "budget_amount", "actual_amount", "notes",
         ]
-
-    def get_variance(self, obj):
-        return float(obj.budget_amount - obj.actual_amount)
 
 
 class BudgetScenarioSerializer(serializers.ModelSerializer):
