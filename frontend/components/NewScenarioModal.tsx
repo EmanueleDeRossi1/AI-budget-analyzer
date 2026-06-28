@@ -25,7 +25,7 @@ function buildDemoItems(periodType: PeriodType) {
 
 const TEMPLATES: { key: Template; label: string; desc: string }[] = [
   { key: 'blank', label: 'Blank',     desc: 'Start from scratch' },
-  { key: 'demo',  label: 'Demo Data', desc: '5 departments, seeded actuals' },
+  { key: 'demo',  label: 'Demo Data', desc: '5 departments, seeded data' },
 ]
 
 export default function NewScenarioModal({

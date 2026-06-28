@@ -32,13 +32,19 @@ export default function Home() {
     api.getScenarios()
       .then(data => {
         setScenarios(data)
-        if (data.length > 0) setSelectedId(data[0].id)
+        if (data.length > 0) {
+          const saved = localStorage.getItem('selectedScenarioId')
+          const savedId = saved ? parseInt(saved, 10) : null
+          const match = savedId && data.find(s => s.id === savedId)
+          setSelectedId(match ? savedId : data[0].id)
+        }
       })
       .catch(() => setError('Failed to load scenarios. Is the backend running?'))
   }, [])
 
   useEffect(() => {
     if (selectedId) {
+      localStorage.setItem('selectedScenarioId', String(selectedId))
       setFilterSpec({})
       api.getLineItems(selectedId)
         .then(setLineItems)

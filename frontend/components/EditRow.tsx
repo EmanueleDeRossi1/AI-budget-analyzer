@@ -30,26 +30,15 @@ export default function EditRow({
   return (
     <>
       <Table.Td>
-        {periodType === 'custom' ? (
-          <SuggestInput
-            value={values.period ?? ''}
-            onChange={v => onChange({ ...values, period: v })}
-            suggestions={[]}
-            placeholder="Period"
-            autoFocus
-            onEnter={() => deptRef.current?.focus()}
-          />
-        ) : (
-          <Select
-            data={opts}
-            value={values.period ?? null}
-            onChange={v => onChange({ ...values, period: v ?? '' })}
-            placeholder="Period"
-            size="xs"
-            autoFocus
-            styles={{ input: { fontSize: 'var(--mantine-font-size-sm)' } }}
-          />
-        )}
+        <Select
+          data={opts}
+          value={values.period ?? null}
+          onChange={v => onChange({ ...values, period: v ?? '' })}
+          placeholder="Period"
+          size="xs"
+          autoFocus
+          styles={{ input: { fontSize: 'var(--mantine-font-size-sm)' } }}
+        />
       </Table.Td>
       <Table.Td>
         <SuggestInput
