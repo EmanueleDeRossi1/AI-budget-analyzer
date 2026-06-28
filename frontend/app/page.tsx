@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import {
-  Group, Text, Button, Box, Paper, Flex, ScrollArea,
+  Group, Text, Button, Box, Paper, Flex, ScrollArea, Alert,
 } from '@mantine/core'
-import { Plus } from 'lucide-react'
+import { Plus, AlertCircle } from 'lucide-react'
 import { api, BudgetScenario, BudgetLineItem } from '@/lib/api'
 import { FilterSpec, applyFilterSpec } from '@/lib/filterSpec'
 import { normalizeAmount } from '@/lib/utils'
@@ -26,44 +26,61 @@ export default function Home() {
   const [newRow, setNewRow] = useState<Partial<BudgetLineItem>>({})
   const [showModal, setShowModal] = useState(false)
   const [filterSpec, setFilterSpec] = useState<FilterSpec>({})
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api.getScenarios().then(data => {
-      setScenarios(data)
-      if (data.length > 0) setSelectedId(data[0].id)
-    })
+    api.getScenarios()
+      .then(data => {
+        setScenarios(data)
+        if (data.length > 0) setSelectedId(data[0].id)
+      })
+      .catch(() => setError('Failed to load scenarios. Is the backend running?'))
   }, [])
 
   useEffect(() => {
     if (selectedId) {
       setFilterSpec({})
-      api.getLineItems(selectedId).then(setLineItems)
+      api.getLineItems(selectedId)
+        .then(setLineItems)
+        .catch(() => setError('Failed to load line items.'))
     }
   }, [selectedId])
 
   const refresh = useCallback(() => {
-    if (selectedId) api.getLineItems(selectedId).then(setLineItems)
+    if (selectedId) {
+      api.getLineItems(selectedId)
+        .then(setLineItems)
+        .catch(() => setError('Failed to refresh line items.'))
+    }
   }, [selectedId])
 
   // ── Row-level handlers ──────────────────────────────────────────────────
 
   const deleteItem = async (id: number) => {
-    await api.deleteLineItem(id)
-    refresh()
+    try {
+      await api.deleteLineItem(id)
+      refresh()
+    } catch {
+      setError('Failed to delete item.')
+    }
   }
 
   const duplicateItem = async (item: BudgetLineItem) => {
     if (!selectedId) return
-    await api.createLineItem({
-      scenario: selectedId,
-      period: item.period,
-      department: item.department,
-      category: item.category,
-      budget_amount: item.budget_amount,
-      actual_amount: item.actual_amount,
-      notes: item.notes,
-    })
-    refresh()
+    try {
+      await api.createLineItem({
+        scenario: selectedId,
+        period: item.period,
+        department: item.department,
+        category: item.category,
+        budget_amount: item.budget_amount,
+        actual_amount: item.actual_amount,
+        notes: item.notes,
+      })
+      refresh()
+    } catch {
+      setError('Failed to duplicate item.')
+    }
   }
 
   const saveNewRow = async () => {
@@ -73,10 +90,14 @@ export default function Home() {
       budget_amount: normalizeAmount(newRow.budget_amount ?? ''),
       actual_amount: normalizeAmount(newRow.actual_amount ?? ''),
     }
-    await api.createLineItem({ ...normalized, scenario: selectedId })
-    setAddingRow(false)
-    setNewRow({})
-    refresh()
+    try {
+      await api.createLineItem({ ...normalized, scenario: selectedId })
+      setAddingRow(false)
+      setNewRow({})
+      refresh()
+    } catch {
+      setError('Failed to save new item.')
+    }
   }
 
   // ── Operations dispatch ──────────────────────────────────────────────────
@@ -105,6 +126,18 @@ export default function Home() {
 
         {/* Left column: header + table */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+
+          {error && (
+            <Alert
+              icon={<AlertCircle size={16} />}
+              color="red"
+              withCloseButton
+              onClose={() => setError(null)}
+              style={{ borderRadius: 0, flexShrink: 0 }}
+            >
+              {error}
+            </Alert>
+          )}
 
           {/* Header */}
           <Box style={{ flexShrink: 0, background: 'var(--mantine-color-white)', height: 56 }}>
