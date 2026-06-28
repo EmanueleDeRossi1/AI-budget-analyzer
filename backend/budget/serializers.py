@@ -13,7 +13,7 @@ class BudgetLineItemSerializer(serializers.ModelSerializer):
         ]
 
     def get_variance(self, obj):
-        return float(obj.actual_amount - obj.budget_amount)
+        return float(obj.budget_amount - obj.actual_amount)
 
 
 class BudgetScenarioSerializer(serializers.ModelSerializer):
