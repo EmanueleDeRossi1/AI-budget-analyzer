@@ -6,6 +6,7 @@ import {
 } from '@mantine/core'
 import { api, BudgetScenario } from '@/lib/api'
 import { PeriodType, PERIOD_TYPE_LABELS, periodOptions } from '@/lib/periods'
+import SegmentButton from '@/components/SegmentButton'
 
 type Template = 'blank' | 'demo' | 'csv' | 'copy'
 
@@ -88,24 +89,9 @@ export default function NewScenarioModal({
             <Text size="xs" fw={600} tt="uppercase" lts={0.5} c="dimmed" mb={6}>Period type</Text>
             <Group gap={4} wrap="wrap">
               {(Object.keys(PERIOD_TYPE_LABELS) as PeriodType[]).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setPeriodType(t)}
-                  style={{
-                    border: '1px solid',
-                    borderColor: periodType === t ? 'var(--mantine-color-blue-4)' : 'var(--mantine-color-gray-4)',
-                    background: periodType === t ? 'var(--mantine-color-blue-0)' : 'transparent',
-                    color: periodType === t ? 'var(--mantine-color-blue-7)' : 'var(--mantine-color-gray-6)',
-                    borderRadius: 'var(--mantine-radius-sm)',
-                    padding: '3px 10px',
-                    fontSize: 'var(--mantine-font-size-xs)',
-                    fontWeight: periodType === t ? 600 : 400,
-                    cursor: 'pointer',
-                    lineHeight: 1.5,
-                  }}
-                >
+                <SegmentButton key={t} active={periodType === t} onClick={() => setPeriodType(t)}>
                   {PERIOD_TYPE_LABELS[t]}
-                </button>
+                </SegmentButton>
               ))}
             </Group>
           </Box>

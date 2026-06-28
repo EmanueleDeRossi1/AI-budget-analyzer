@@ -9,6 +9,7 @@ import { Trash2, Plus, CopyPlus } from 'lucide-react'
 import { api, BudgetScenario, BudgetLineItem } from '@/lib/api'
 import { FilterSpec, FilteredRow, GroupByField, HighlightSpec, applyFilterSpec, matchesHighlight } from '@/lib/filterSpec'
 import { PeriodType, PERIOD_TYPE_LABELS, periodLabel, periodOptions } from '@/lib/periods'
+import { fmt } from '@/lib/utils'
 import { RuntimeProvider } from './RuntimeProvider'
 import { Thread } from '@/components/assistant-ui/thread'
 import ScenarioCombobox from '@/components/ScenarioCombobox'
@@ -18,14 +19,6 @@ import NewScenarioModal from '@/components/NewScenarioModal'
 import EditRow from '@/components/EditRow'
 import EditableCell, { CellInput } from '@/components/EditableCell'
 import SuggestInput from '@/components/SuggestInput'
-
-// ── Formatting ────────────────────────────────────────────────────────────────
-
-function fmt(value: number) {
-  return Number(value).toLocaleString('en-US', {
-    style: 'currency', currency: 'USD', maximumFractionDigits: 0,
-  })
-}
 
 // ── Variance display ──────────────────────────────────────────────────────────
 

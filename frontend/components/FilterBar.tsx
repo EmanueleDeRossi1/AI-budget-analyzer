@@ -4,6 +4,7 @@ import { Box, Group, Text, Button, MultiSelect, Divider } from '@mantine/core'
 import { X } from 'lucide-react'
 import { FilterSpec, GroupByField, isEmptySpec, toggleGroupBy } from '@/lib/filterSpec'
 import { PeriodType, PERIOD_TYPE_LABELS, periodLabel } from '@/lib/periods'
+import SegmentButton from '@/components/SegmentButton'
 
 export default function FilterBar({
   items, spec, onChange, periodType,
@@ -39,20 +40,6 @@ export default function FilterBar({
       onChange({ ...spec, sort_by: s, sort_dir: 'desc' })
     }
   }
-
-  const segStyle = (active: boolean): React.CSSProperties => ({
-    border: '1px solid',
-    borderColor: active ? 'var(--mantine-color-blue-4)' : 'var(--mantine-color-gray-4)',
-    background: active ? 'var(--mantine-color-blue-0)' : 'transparent',
-    color: active ? 'var(--mantine-color-blue-7)' : 'var(--mantine-color-gray-6)',
-    borderRadius: 'var(--mantine-radius-sm)',
-    padding: '3px 10px',
-    fontSize: 'var(--mantine-font-size-xs)',
-    fontWeight: active ? 600 : 400,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap' as const,
-    lineHeight: 1.5,
-  })
 
   const activePillStyle: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -123,9 +110,9 @@ export default function FilterBar({
             </span>
           ))}
           {ALL_GROUP_OPTS.filter(o => !groupBy.includes(o.value)).map(o => (
-            <button key={o.value} style={segStyle(false)} onClick={() => onChange(toggleGroupBy(spec, o.value))}>
+            <SegmentButton key={o.value} active={false} onClick={() => onChange(toggleGroupBy(spec, o.value))}>
               + {o.label}
-            </button>
+            </SegmentButton>
           ))}
         </Group>
 
@@ -137,9 +124,9 @@ export default function FilterBar({
             const active = (spec.sort_by ?? 'variance') === o.value
             const dir = spec.sort_dir ?? 'desc'
             return (
-              <button key={o.value!} style={segStyle(active)} onClick={() => setSortBy(o.value)}>
+              <SegmentButton key={o.value!} active={active} onClick={() => setSortBy(o.value)}>
                 {o.label}{active ? (dir === 'desc' ? ' ↓' : ' ↑') : ''}
-              </button>
+              </SegmentButton>
             )
           })}
         </Group>

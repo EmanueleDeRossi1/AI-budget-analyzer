@@ -4,12 +4,7 @@ import { Box, SimpleGrid, Paper, Text, Group } from '@mantine/core'
 import { BarChart } from '@mantine/charts'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { BudgetLineItem } from '@/lib/api'
-
-function fmt(value: number) {
-  return Number(value).toLocaleString('en-US', {
-    style: 'currency', currency: 'USD', maximumFractionDigits: 0,
-  })
-}
+import { fmt } from '@/lib/utils'
 
 export default function StatsBar({ items }: { items: BudgetLineItem[] }) {
   const totalBudget = items.reduce((s, i) => s + Number(i.budget_amount), 0)
