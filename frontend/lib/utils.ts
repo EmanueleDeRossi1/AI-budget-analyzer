@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function fmt(value: number) {
   return Number(value).toLocaleString('en-US', {
-    style: 'currency', currency: 'USD', maximumFractionDigits: 0,
+    style: 'currency', currency: 'EUR', maximumFractionDigits: 0,
   })
 }
 
