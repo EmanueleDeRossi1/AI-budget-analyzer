@@ -86,10 +86,10 @@ function GroupHeaderRow({
     : row.groupValue
 
   return (
-    <Table.Tr style={{ background: bg }}>
+    <Table.Tr style={{ background: bg, cursor: 'pointer' }} onClick={onToggle}>
       <Table.Td colSpan={3} style={{ paddingLeft, paddingTop: 8, paddingBottom: 8 }}>
         <Group gap={4}>
-          <ActionIcon variant="subtle" size="xs" color="gray" onClick={onToggle} style={{ width: 20, height: 20 }}>
+          <ActionIcon variant="subtle" size="xs" color="gray" onClick={e => { e.stopPropagation(); onToggle(); }} style={{ width: 20, height: 20 }}>
             {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
           </ActionIcon>
           <Text size="sm" fw={row.level === 0 ? 700 : 600}>{displayValue}</Text>
