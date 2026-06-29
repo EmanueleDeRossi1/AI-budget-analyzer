@@ -16,7 +16,11 @@ docker compose up
 
 Open http://localhost:3000. A demo scenario loads automatically.
 
-> The only value you need to set in `.env` is `OPENAI_API_KEY`.
+## Running tests
+
+```bash
+docker compose run --rm test
+```
 
 ## Architecture
 
