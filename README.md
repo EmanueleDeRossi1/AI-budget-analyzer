@@ -24,6 +24,8 @@ docker compose run --rm test
 
 ## Architecture
 
+> See [ARCHITECTURE.md](ARCHITECTURE.md) for full architecture details.
+
 **Backend**: Django REST API for scenarios and line items, plus a streaming chat endpoint (SSE) that runs the AI agent.
 
 **Frontend**: Next.js, budget table + chat panel side by side. I used existing libraries rather than building custom: [assistant-ui](https://www.assistant-ui.com/) for the chat (streaming, tool-call rendering, message history, copy/retry actions... all out of the box) and [Mantine](https://mantine.dev) for everything else (clean, data-dense, looks good without much work).
